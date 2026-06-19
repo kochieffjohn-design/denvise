@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Denvise",
+    "slug": "denvise",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.denvise.app"
+    },
+    "android": {
+      "package": "com.denvise.app"
+    },
+    "scheme": "denvise",
+    "plugins": ["expo-router"]
+  }
+}
