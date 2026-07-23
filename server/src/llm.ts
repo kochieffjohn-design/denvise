@@ -1,7 +1,11 @@
 ﻿import OpenAI from 'openai';
 import { buildSystemPrompt } from './systemPrompt';
 
-const apiKey = process.env.OPENROUTER_API_KEY;
+// API-ключ не может легитимно содержать пробельные символы — если при
+// копипасте в Variables на Railway ключ случайно перенёсся на две строки
+// (реальный \n оказался ВНУТРИ значения), обычный .trim() это не поймает —
+// он чистит только края. Поэтому убираем пробельные символы целиком.
+const apiKey = process.env.OPENROUTER_API_KEY?.replace(/\s+/g, '');
 if (!apiKey) {
   throw new Error('OPENROUTER_API_KEY не задан. Скопируйте .env.example в .env и заполните ключ (получить на https://openrouter.ai/settings/keys).');
 }

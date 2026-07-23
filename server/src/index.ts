@@ -10,6 +10,8 @@ import { PATIENTS } from '../data/patients';
 const app = express();
 const PORT = Number(process.env.PORT) || 8787;
 
+app.set('trust proxy', 1);
+
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json({ limit: '256kb' }));
 
@@ -29,16 +31,16 @@ function parseHistory(messages: unknown): ChatMessage[] | { error: string } {
     return { error: 'Поле "messages" обязательно и должно быть непустым массивом.' };
   }
   if (messages.length > MAX_HISTORY_MESSAGES) {
-    return { error: `Слишком длинная история диалога (максимум ${MAX_HISTORY_MESSAGES} сообщений). Начните новый чат.` };
+    return { error: Слишком длинная история диалога (максимум ${MAX_HISTORY_MESSAGES} сообщений). Начните новый чат. };
   }
 
   const history: ChatMessage[] = [];
   for (const m of messages as any[]) {
-    if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.content !== 'string') {
+    if (!m  (m.role !== 'user' && m.role !== 'assistant')  typeof m.content !== 'string') {
       return { error: 'Каждое сообщение должно иметь role: "user" | "assistant" и content: string.' };
     }
     if (m.content.length === 0 || m.content.length > MAX_MESSAGE_LENGTH) {
-      return { error: `Сообщение пустое или длиннее ${MAX_MESSAGE_LENGTH} символов.` };
+      return { error: Сообщение пустое или длиннее ${MAX_MESSAGE_LENGTH} символов. };
     }
     history.push({ role: m.role, content: m.content });
   }
@@ -62,7 +64,7 @@ app.get('/api/dentai/source/:number', (req, res) => {
   }
   const chunk = getChunkByNumber(n);
   if (!chunk) {
-    return res.status(404).json({ error: `Источник #${n} не найден.` });
+    return res.status(404).json({ error: Источник #${n} не найден. });
   }
   res.json({ number: n, source: chunk.source, title: chunk.title, text: chunk.text });
 });
@@ -108,8 +110,7 @@ app.post('/api/patient/chat', limiter, async (req, res) => {
     const patientId = req.body?.patientId;
     const patient = (PATIENTS as any[]).find((p) => p.id === patientId);
     if (!patient) {
-      return res.status(400).json({ error: `Неизвестный patientId: "${patientId}".` });
-    }
+      return res.status(400).json({ error: Неизвестный patientId: "${patientId}". });}
 
     const history = parseHistory(req.body?.messages);
     if ('error' in history) {
