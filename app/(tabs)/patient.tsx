@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { C } from '../../constants/Colors';
 import { PATIENTS } from '../../data/clinicalData';
+import { DENTAI_API_URL } from '../../constants/config';
 
-const API_KEY = 'YOUR_ANTHROPIC_API_KEY_HERE';
 type Msg = { role: 'user' | 'assistant'; content: string };
 
 export default function PatientScreen() {
@@ -31,13 +31,17 @@ export default function PatientScreen() {
     else if (l.includes('больно не будет')) setFb('❌ Нельзя гарантировать. Лучше: «Сделаем максимально комфортно».');
     else setFb('💡 Используйте эмпатию, конкретику и стоп-сигнал.');
     try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
+      const r = await fetch(`${DENTAI_API_URL}/api/patient/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 150, system: pat.systemPrompt, messages: next }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: pat.id, messages: next }),
       });
       const d = await r.json();
-      setMsgs([...next, { role: 'assistant', content: d.content?.[0]?.text || '...' }]);
+      if (!r.ok) {
+        setMsgs([...next, { role: 'assistant', content: d?.error || '(ошибка сервера)' }]);
+      } else {
+        setMsgs([...next, { role: 'assistant', content: d.answer || '...' }]);
+      }
     } catch { setMsgs([...next, { role: 'assistant', content: '(нет связи)' }]); }
     finally { setLoading(false); setTimeout(() => ref.current?.scrollToEnd({ animated: true }), 100); }
   };
