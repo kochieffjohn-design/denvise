@@ -20,9 +20,9 @@
  * caching это стоит доли цента за запрос (см. server/.env.example).
  */
 
-import { PROCEDURES } from '../../data/procedures';
-import { DIAG_CASES } from '../../data/diagCases';
-import { CONSULT_SECTIONS } from '../../data/consultData';
+import { PROCEDURES } from '../data/procedures';
+import { DIAG_CASES } from '../data/diagCases';
+import { CONSULT_SECTIONS } from '../data/consultData';
 
 export type KBSource = 'procedures' | 'diagCases' | 'consultData';
 
