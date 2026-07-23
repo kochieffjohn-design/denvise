@@ -1,4 +1,4 @@
-/**
+﻿/**
  * База знаний ДентИИ.
  *
  * Принципиально: это НЕ обёртка над внешними учебниками — источник только
@@ -34,7 +34,14 @@ export interface KBChunk {
 }
 
 function buildProcedureChunks(): KBChunk[] {
-  return (PROCEDURES as any[]).map((p, i) => {
+  const validEntries = (PROCEDURES as any[]).filter((p, i) => {
+    if (!p) {
+      console.warn(`[knowledgeBase] PROCEDURES[${i}] пустой (undefined/null) — пропущен. Почистите data/procedures.ts.`);
+      return false;
+    }
+    return true;
+  });
+  return validEntries.map((p, i) => {
     const stepsText = (p.steps ?? [])
       .map((s: any, idx: number) => `${idx + 1}. ${s.t}\n   Как делать: ${s.d}${s.c ? `\n   Важно/риски: ${s.c}` : ''}`)
       .join('\n');
@@ -57,13 +64,17 @@ function buildProcedureChunks(): KBChunk[] {
 }
 
 function buildDiagCaseChunks(): KBChunk[] {
-  return (DIAG_CASES as any[]).map((c) => {
+  const validEntries = (DIAG_CASES as any[]).filter((c, i) => {
+    if (!c) {
+      console.warn(`[knowledgeBase] DIAG_CASES[${i}] пустой (undefined/null) — пропущен. Почистите data/diagCases.ts.`);
+      return false;
+    }
+    return true;
+  });
+  return validEntries.map((c) => {
     const symptomsText = (c.symptoms ?? [])
       .map((s: any) => `- ${s.text}`)
       .join('\n');
-    // Пояснения из вопросов содержат ценную дифференциально-диагностическую логику
-    // (почему именно этот диагноз, чем отличается от похожих) — включаем их как
-    // клиническое обоснование, а не как учебный квиз.
     const reasoning = (c.questions ?? [])
       .map((q: any) => q?.explanation?.ok)
       .filter(Boolean)
@@ -94,8 +105,16 @@ function buildDiagCaseChunks(): KBChunk[] {
 
 function buildConsultChunks(): KBChunk[] {
   const chunks: KBChunk[] = [];
-  for (const section of CONSULT_SECTIONS as any[]) {
-    for (const script of section.scripts ?? []) {
+  (CONSULT_SECTIONS as any[]).forEach((section, si) => {
+    if (!section) {
+      console.warn(`[knowledgeBase] CONSULT_SECTIONS[${si}] пустой (undefined/null) — пропущен. Почистите data/consultData.ts.`);
+      return;
+    }
+    (section.scripts ?? []).forEach((script: any, sci: number) => {
+      if (!script) {
+        console.warn(`[knowledgeBase] CONSULT_SECTIONS[${si}].scripts[${sci}] пустой (undefined/null) — пропущен. Почистите data/consultData.ts.`);
+        return;
+      }
       const stepsText = (script.steps ?? [])
         .map((s: any, idx: number) => `${idx + 1}. ${s.label}: ${s.text}`)
         .join('\n');
@@ -120,8 +139,8 @@ function buildConsultChunks(): KBChunk[] {
         title: script.title,
         text,
       });
-    }
-  }
+    });
+  });
   return chunks;
 }
 
@@ -138,11 +157,6 @@ export function getKnowledgeBaseChunks(): KBChunk[] {
   return cachedChunks;
 }
 
-/**
- * Полный текст корпуса — вставляется в system-промпт целиком (см. systemPrompt.ts).
- * Каждый фрагмент пронумерован и помечен источником — модель обязана
- * ссылаться на конкретный номер/название при ответе.
- */
 export function getFullCorpusText(): string {
   const chunks = getKnowledgeBaseChunks();
   return chunks
@@ -150,12 +164,6 @@ export function getFullCorpusText(): string {
     .join('\n\n---\n\n');
 }
 
-/**
- * Источник по номеру — той же нумерации, что в getFullCorpusText() ([[Источник #N]]).
- * Используется сервером для проверки цитат модели (см. citations.ts): если модель
- * ссылается на номер, которого нет в этом диапазоне, это явный сигнал, что номер
- * придуман, а не реально взят из корпуса.
- */
 export function getChunkByNumber(n: number): KBChunk | undefined {
   const chunks = getKnowledgeBaseChunks();
   return chunks[n - 1];
@@ -172,14 +180,10 @@ export function getKnowledgeBaseStats() {
       consultData: chunks.filter((c) => c.source === 'consultData').length,
     },
     totalChars: fullText.length,
-    // грубая оценка токенов для кириллического текста (~2.2 символа/токен)
     approxTokens: Math.round(fullText.length / 2.2),
   };
 }
 
-// Позволяет запустить `npm run kb:stats` и сразу увидеть, что корпус собрался
-// без «дыр» в массивах данных и посмотреть примерную стоимость system-промпта
-// в токенах — полезно проверять после любой правки data/*.ts.
 if (require.main === module) {
   const stats = getKnowledgeBaseStats();
   console.log('=== ДентИИ: статистика базы знаний ===');
