@@ -1,17 +1,18 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useTheme } from '../../constants/theme';
+import { C } from '../../constants/Colors';
 import { getStats, resetStats, type Stats } from '../../data/xpStorage';
 
 const LEVELS = [
-  { level: 1, title: 'Интерн',           minXp: 0,    maxXp: 199,  roman: 'I',    color: '#94a3b8' },
-  { level: 2, title: 'Ординатор',        minXp: 200,  maxXp: 499,  roman: 'II',   color: '#60a5fa' },
-  { level: 3, title: 'Врач',             minXp: 500,  maxXp: 999,  roman: 'III',  color: '#34d399' },
-  { level: 4, title: 'Специалист',       minXp: 1000, maxXp: 1499, roman: 'IV',   color: '#a78bfa' },
-  { level: 5, title: 'Эксперт',          minXp: 1500, maxXp: 3499, roman: 'V',    color: '#f59e0b' },
-  { level: 6, title: 'Профессор',        minXp: 3500, maxXp: 4499, roman: 'VI',   color: '#f97316' },
-  { level: 7, title: 'Владелец клиники', minXp: 4500, maxXp: 99999,roman: 'VII',  color: '#1565c0' },
+  { level: 1, title: 'Интерн',           minXp: 0,    maxXp: 199,  roman: 'I',    c1: '#94A3B8', c2: '#CBD5E1' },
+  { level: 2, title: 'Ассистент',        minXp: 200,  maxXp: 499,  roman: 'II',   c1: '#60A5FA', c2: '#93C5FD' },
+  { level: 3, title: 'Ординатор',        minXp: 500,  maxXp: 999,  roman: 'III',  c1: '#3A6FD8', c2: '#6FA0F0' },
+  { level: 4, title: 'Врач',             minXp: 1000, maxXp: 1499, roman: 'IV',   c1: '#2E9C78', c2: '#5BC79E' },
+  { level: 5, title: 'Специалист',       minXp: 1500, maxXp: 3499, roman: 'V',    c1: '#BC8F37', c2: '#E0B65E' },
+  { level: 6, title: 'Эксперт',          minXp: 3500, maxXp: 4499, roman: 'VI',   c1: '#C2683F', c2: '#E08A5F' },
+  { level: 7, title: 'Владелец клиники', minXp: 4500, maxXp: 99999,roman: 'VII',  c1: '#D4AF37', c2: '#F4D571' },
 ];
 
 function getCurrentLevel(xp: number) {
@@ -26,19 +27,43 @@ function getNextLevel(xp: number) {
   return LEVELS.find(l => l.level === current.level + 1) || null;
 }
 
+function Medallion({ level, size = 62, locked = false }: { level: typeof LEVELS[0]; size?: number; locked?: boolean }) {
+  const colors = locked ? ['#E3E8EF', '#C3CAD7'] : [level.c1, level.c2];
+  return (
+    <View style={{ width: size, height: size }}>
+      <LinearGradient
+        colors={colors as any}
+        start={{ x: 0.32, y: 0.25 }}
+        end={{ x: 0.8, y: 1 }}
+        style={[
+          medal.base,
+          { width: size, height: size, borderRadius: size / 2 },
+          !locked && { shadowColor: level.c1, shadowOpacity: 0.34, shadowRadius: size * 0.22, shadowOffset: { width: 0, height: size * 0.1 } },
+        ]}
+      >
+        <View style={[medal.ring, { borderRadius: size / 2 }]} />
+        <View style={[medal.topLight, { borderRadius: size / 2, height: size * 0.5 }]} />
+        <Text style={[medal.roman, { fontSize: size * 0.32, color: locked ? '#94A3B8' : '#fff' }]}>
+          {level.roman}
+        </Text>
+        {level.level === 7 && !locked && (
+          <View style={medal.halo} pointerEvents="none" />
+        )}
+      </LinearGradient>
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
-  const { theme, toggleTheme } = useTheme();
   const [tab, setTab] = useState<'profile' | 'levels'>('profile');
   const [stats, setStats] = useState<Stats>({
-    xp: 0, diagCases: 0, commScenarios: 0, exams: 0,
-    lastUpdated: 0, streak: 0, lastActivityDate: '',
+    xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
   });
 
   useFocusEffect(useCallback(() => {
     getStats().then(setStats);
   }, []));
 
-  const C = theme;
   const xp = stats.xp;
   const currentLevel = getCurrentLevel(xp);
   const nextLevel = getNextLevel(xp);
@@ -57,19 +82,18 @@ export default function ProfileScreen() {
     stats.streak < 5   ? 'дня подряд' : 'дней подряд';
 
   const STAT_ITEMS = [
-    { label: 'Диагностика',  value: `${stats.diagCases}`,     sub: 'кейсов',    icon: 'Dx', color: '#185FA5', bg: '#E6F1FB' },
-    { label: 'Коммуникация', value: `${stats.commScenarios}`, sub: 'сценариев', icon: 'Cm', color: '#993556', bg: '#FBEAF0' },
-    { label: 'Экзамены',     value: `${stats.exams}`,         sub: 'пройдено',  icon: 'Ex', color: '#854F0B', bg: '#FAEEDA' },
-    { label: 'XP набрано',   value: `${stats.xp}`,            sub: 'очков',     icon: 'XP', color: C.primary, bg: C.light  },
+    { label: 'Диагностика',  value: `${stats.diagCases}`,     sub: 'кейсов',    icon: 'Dx', color: '#3A6FD8', bg: '#ECF1FB' },
+    { label: 'Коммуникация', value: `${stats.commScenarios}`, sub: 'сценариев', icon: 'Cm', color: '#C0547D', bg: '#FBECF2' },
+    { label: 'Экзамены',     value: `${stats.exams}`,         sub: 'пройдено',  icon: 'Ex', color: '#BC8F37', bg: '#F8F2E2' },
+    { label: 'XP набрано',   value: `${stats.xp}`,            sub: 'очков',     icon: 'XP', color: C.primary500, bg: C.primary50 },
   ];
-
-  const s = makeStyles(C);
 
   return (
     <View style={s.container}>
-      <View style={s.header}>
+      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={s.header}>
+        <View style={s.headerGlow} pointerEvents="none" />
         <Text style={s.title}>Профиль</Text>
-      </View>
+      </LinearGradient>
 
       <View style={s.tabRow}>
         <TouchableOpacity style={[s.tab, tab === 'profile' && s.tabActive]} onPress={() => setTab('profile')}>
@@ -83,7 +107,6 @@ export default function ProfileScreen() {
       {tab === 'profile' && (
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-          {/* Streak */}
           {stats.streak > 0 && (
             <View style={s.streakCard}>
               <View style={s.streakLeft}>
@@ -97,27 +120,37 @@ export default function ProfileScreen() {
             </View>
           )}
 
-          {/* Уровень */}
-          <View style={[s.levelCard, { borderColor: currentLevel.color }]}>
-            <View style={[s.romanCircle, { backgroundColor: currentLevel.color }]}>
-              <Text style={s.romanText}>{currentLevel.roman}</Text>
-            </View>
+          {/* Карточка уровня — медальон */}
+          <View style={s.levelCard}>
+            <Medallion level={currentLevel} size={62} />
             <View style={{ flex: 1 }}>
+              <Text style={s.levelRank}>Ранг {currentLevel.roman}</Text>
               <Text style={s.levelTitle}>{currentLevel.title}</Text>
               <Text style={s.levelXp}>
-                {xp} XP{nextLevel ? ` · до ${nextLevel.title}: ${nextLevel.minXp - xp} XP` : ' · Максимальный уровень'}
+                {nextLevel
+                  ? `До ранга ${nextLevel.roman} — ${nextLevel.title}`
+                  : 'Максимальный ранг'}
               </Text>
               <View style={s.progressBg}>
-                <View style={[s.progressFill, { width: `${progressPct * 100}%` as any, backgroundColor: currentLevel.color }]} />
+                <LinearGradient
+                  colors={[currentLevel.c1, currentLevel.c2]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[s.progressFill, { width: `${progressPct * 100}%` as any }]}
+                >
+                  <View style={s.progressInsetLight} />
+                </LinearGradient>
               </View>
+              <Text style={s.progressNumbers}>
+                {xp.toLocaleString('ru-RU')} / {nextLevel ? nextLevel.minXp.toLocaleString('ru-RU') : '∞'} XP
+              </Text>
             </View>
           </View>
 
-          {/* Статистика */}
           <Text style={s.sectionTitle}>Статистика</Text>
           <View style={s.statsGrid}>
             {STAT_ITEMS.map((st, i) => (
-              <View key={i} style={s.statCard}>
+              <View key={i} style={[s.statCard]}>
                 <View style={[s.statIconWrap, { backgroundColor: st.bg }]}>
                   <Text style={[s.statIconText, { color: st.color }]}>{st.icon}</Text>
                 </View>
@@ -128,8 +161,6 @@ export default function ProfileScreen() {
             ))}
           </View>
 
-
-          {/* О приложении */}
           <View style={s.infoCard}>
             <Text style={s.infoTitle}>О приложении</Text>
             <View style={s.infoRow}>
@@ -146,11 +177,9 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Сброс */}
           <TouchableOpacity style={s.resetBtn} onPress={() => {
             resetStats().then(() => setStats({
-              xp: 0, diagCases: 0, commScenarios: 0, exams: 0,
-              lastUpdated: 0, streak: 0, lastActivityDate: '',
+              xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
             }));
           }}>
             <Text style={s.resetBtnT}>Сбросить прогресс</Text>
@@ -162,7 +191,7 @@ export default function ProfileScreen() {
 
       {tab === 'levels' && (
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={s.levelsDesc}>Проходите кейсы, сценарии и экзамены — зарабатывайте XP и повышайте уровень</Text>
+          <Text style={s.levelsDesc}>7 рангов — от Интерна до Владельца клиники</Text>
 
           <View style={s.xpGuide}>
             <Text style={s.xpGuideTitle}>Как зарабатывать XP</Text>
@@ -177,41 +206,34 @@ export default function ProfileScreen() {
             ].map((item, i) => (
               <View key={i} style={s.xpRow}>
                 <Text style={s.xpAction}>{item.action}</Text>
-                <Text style={[s.xpBadge, { color: C.primary }]}>{item.xp}</Text>
+                <Text style={[s.xpBadge, { color: C.primary500 }]}>{item.xp}</Text>
               </View>
             ))}
           </View>
 
-          <Text style={s.sectionTitle}>Все уровни</Text>
+          <Text style={s.sectionTitle}>Все ранги</Text>
           {LEVELS.map(lvl => {
             const isCurrent = lvl.level === currentLevel.level;
             const isUnlocked = xp >= lvl.minXp;
             return (
-              <View key={lvl.level} style={[s.levelRow, isCurrent && { borderColor: lvl.color, borderWidth: 2 }]}>
-                <View style={[s.romanCircleSm, { backgroundColor: isUnlocked ? lvl.color : C.border }]}>
-                  <Text style={[s.romanTextSm, { color: isUnlocked ? '#fff' : C.muted }]}>{lvl.roman}</Text>
-                </View>
+              <View key={lvl.level} style={[s.levelRow, isCurrent && { borderColor: lvl.c1, borderWidth: 1.5 }]}>
+                <Medallion level={lvl} size={48} locked={!isUnlocked} />
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={[s.levelRowTitle, !isUnlocked && { color: C.muted }]}>{lvl.title}</Text>
+                    <Text style={[s.levelRowTitle, !isUnlocked && { color: C.n400 }]}>{lvl.title}</Text>
                     {isCurrent && (
-                      <View style={[s.currentBadge, { backgroundColor: lvl.color }]}>
+                      <View style={[s.currentBadge, { backgroundColor: lvl.c1 }]}>
                         <Text style={s.currentBadgeText}>Текущий</Text>
                       </View>
                     )}
                   </View>
                   <Text style={s.levelRowXp}>
-                    {lvl.maxXp === 99999 ? `от ${lvl.minXp} XP` : `${lvl.minXp} – ${lvl.maxXp} XP`}
+                    {lvl.maxXp === 99999 ? `от ${lvl.minXp.toLocaleString('ru-RU')} XP` : `${lvl.minXp.toLocaleString('ru-RU')} – ${lvl.maxXp.toLocaleString('ru-RU')} XP`}
                   </Text>
                 </View>
-                {!isUnlocked && (
-                  <View style={[s.lockIcon, { backgroundColor: C.border }]}>
-                    <Text style={[s.lockText, { color: C.muted }]}>—</Text>
-                  </View>
-                )}
                 {isUnlocked && !isCurrent && (
-                  <View style={[s.doneIcon, { backgroundColor: lvl.color + '22' }]}>
-                    <Text style={[s.doneText, { color: lvl.color }]}>✓</Text>
+                  <View style={[s.doneIcon, { backgroundColor: lvl.c1 + '22' }]}>
+                    <Text style={[s.doneText, { color: lvl.c1 }]}>✓</Text>
                   </View>
                 )}
               </View>
@@ -224,84 +246,91 @@ export default function ProfileScreen() {
   );
 }
 
-function makeStyles(C: any) {
-  return StyleSheet.create({
-    container: { flex: 1, backgroundColor: C.bg },
-    header: {
-      backgroundColor: C.dark,
-      paddingTop: Platform.OS === 'ios' ? 54 : 44,
-      paddingBottom: 16,
-      paddingHorizontal: 20,
-    },
-    title: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
-    tabRow: { flexDirection: 'row', backgroundColor: C.white, borderBottomWidth: 1, borderBottomColor: C.border },
-    tab: { flex: 1, paddingVertical: 13, alignItems: 'center' },
-    tabActive: { borderBottomWidth: 2, borderBottomColor: C.primary },
-    tabT: { fontSize: 14, color: C.muted, fontWeight: '500' },
-    tabTActive: { color: C.primary, fontWeight: '700' },
-    scroll: { padding: 16, gap: 14 },
-    streakCard: {
-      backgroundColor: C.isDark ? '#2D2008' : '#FFF8E1',
-      borderRadius: 16, padding: 16,
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      borderWidth: 1.5, borderColor: '#F59E0B',
-    },
-    streakLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    streakFire: { fontSize: 32 },
-    streakNum: { fontSize: 28, fontWeight: '900', color: '#F59E0B' },
-    streakLabel: { fontSize: 12, color: '#854F0B', fontWeight: '500' },
-    streakDesc: { fontSize: 13, fontWeight: '700', color: '#854F0B' },
-    levelCard: {
-      backgroundColor: C.white, borderRadius: 16, padding: 18,
-      flexDirection: 'row', alignItems: 'center', gap: 16, borderWidth: 2,
-      shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
-    },
-    romanCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    romanText: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 1 },
-    levelTitle: { fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 3 },
-    levelXp: { fontSize: 12, color: C.muted, marginBottom: 8 },
-    progressBg: { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
-    progressFill: { height: 6, borderRadius: 3 },
-    sectionTitle: { fontSize: 13, fontWeight: '700', color: C.muted, letterSpacing: 0.5, textTransform: 'uppercase' },
-    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-    statCard: {
-      backgroundColor: C.white, borderRadius: 14, padding: 16,
-      width: '47.5%', alignItems: 'center', gap: 4,
-      shadowColor: '#000', shadowOpacity: 0.05, elevation: 1,
-    },
-    statIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-    statIconText: { fontSize: 13, fontWeight: '800' },
-    statValue: { fontSize: 22, fontWeight: '800', color: C.text },
-    statLabel: { fontSize: 12, color: C.text2, textAlign: 'center' },
-    statSub: { fontSize: 10, color: C.muted, textAlign: 'center' },
-    settingsCard: { backgroundColor: C.white, borderRadius: 14, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.05, elevation: 1 },
-    settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-    settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    settingIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    settingLabel: { fontSize: 15, fontWeight: '600', color: C.text },
-    infoCard: { backgroundColor: C.white, borderRadius: 14, padding: 16, gap: 10, shadowColor: '#000', shadowOpacity: 0.05, elevation: 1 },
-    infoTitle: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 2 },
-    infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    infoLabel: { fontSize: 13, color: C.muted },
-    infoValue: { fontSize: 13, fontWeight: '600', color: C.text },
-    resetBtn: { borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: C.border, backgroundColor: C.white },
-    resetBtnT: { fontSize: 13, color: C.muted, fontWeight: '500' },
-    levelsDesc: { fontSize: 13, color: C.muted, lineHeight: 19, textAlign: 'center' },
-    xpGuide: { backgroundColor: C.white, borderRadius: 14, padding: 16, gap: 8, shadowColor: '#000', shadowOpacity: 0.05, elevation: 1 },
-    xpGuideTitle: { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 4 },
-    xpRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: C.border },
-    xpAction: { fontSize: 13, color: C.text2 },
-    xpBadge: { fontSize: 13, fontWeight: '700' },
-    levelRow: { backgroundColor: C.white, borderRadius: 14, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOpacity: 0.04, elevation: 1 },
-    romanCircleSm: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    romanTextSm: { fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
-    levelRowTitle: { fontSize: 15, fontWeight: '700', color: C.text },
-    levelRowXp: { fontSize: 12, color: C.muted, marginTop: 2 },
-    currentBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-    currentBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-    lockIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    lockText: { fontSize: 16, fontWeight: '700' },
-    doneIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    doneText: { fontSize: 16, fontWeight: '700' },
-  });
-}
+const medal = StyleSheet.create({
+  base: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  ring: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 3, borderColor: 'rgba(255,255,255,0.18)' },
+  topLight: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.32)' },
+  roman: { fontWeight: '800', letterSpacing: 0.5 },
+  halo: {
+    position: 'absolute', top: -6, left: -6, right: -6, bottom: -6,
+    borderRadius: 999, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)',
+  },
+});
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.bg },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 54 : 44,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
+  },
+  headerGlow: {
+    position: 'absolute', top: -50, right: -30, width: 150, height: 150,
+    borderRadius: 999, backgroundColor: 'rgba(59,130,246,0.30)',
+  },
+  title: { color: '#fff', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  tabRow: { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+  tab: { flex: 1, paddingVertical: 13, alignItems: 'center' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: C.primary500 },
+  tabT: { fontSize: 14, color: C.n500, fontWeight: '500' },
+  tabTActive: { color: C.primary500, fontWeight: '700' },
+  scroll: { padding: 16, gap: 14 },
+  streakCard: {
+    backgroundColor: '#FBF3E2', borderRadius: 16, padding: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1.5, borderColor: '#E0A53A',
+  },
+  streakLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  streakFire: { fontSize: 32 },
+  streakNum: { fontSize: 28, fontWeight: '900', color: '#E0A53A' },
+  streakLabel: { fontSize: 12, color: '#8A5E1C', fontWeight: '500' },
+  streakDesc: { fontSize: 13, fontWeight: '700', color: '#8A5E1C' },
+  levelCard: {
+    backgroundColor: C.card, borderRadius: 20, padding: 18,
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    shadowColor: C.n900, shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
+  },
+  levelRank: { fontSize: 11, fontWeight: '700', color: C.n400, textTransform: 'uppercase', letterSpacing: 0.5 },
+  levelTitle: { fontSize: 18, fontWeight: '800', color: C.n900, marginBottom: 4 },
+  levelXp: { fontSize: 12, color: C.n500, marginBottom: 8 },
+  progressBg: { height: 8, backgroundColor: C.n200, borderRadius: 999, overflow: 'hidden' },
+  progressFill: { height: 8, borderRadius: 999, overflow: 'hidden' },
+  progressInsetLight: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(255,255,255,0.3)' },
+  progressNumbers: { fontSize: 11, color: C.n400, marginTop: 6, fontWeight: '500' },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: C.n500, letterSpacing: 0.5, textTransform: 'uppercase' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  statCard: {
+    backgroundColor: C.card, borderRadius: 16, padding: 16,
+    width: '47.5%', alignItems: 'center', gap: 4,
+    shadowColor: C.n900, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+  },
+  statIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  statIconText: { fontSize: 13, fontWeight: '800' },
+  statValue: { fontSize: 22, fontWeight: '800', color: C.n900 },
+  statLabel: { fontSize: 12, color: C.n700, textAlign: 'center' },
+  statSub: { fontSize: 10, color: C.n400, textAlign: 'center' },
+  infoCard: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 10 },
+  infoTitle: { fontSize: 14, fontWeight: '700', color: C.n900, marginBottom: 2 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  infoLabel: { fontSize: 13, color: C.n400 },
+  infoValue: { fontSize: 13, fontWeight: '600', color: C.n900 },
+  resetBtn: { borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
+  resetBtnT: { fontSize: 13, color: C.n500, fontWeight: '500' },
+  levelsDesc: { fontSize: 13, color: C.n500, lineHeight: 19, textAlign: 'center' },
+  xpGuide: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8 },
+  xpGuideTitle: { fontSize: 14, fontWeight: '700', color: C.n900, marginBottom: 4 },
+  xpRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: C.border },
+  xpAction: { fontSize: 13, color: C.n700 },
+  xpBadge: { fontSize: 13, fontWeight: '700' },
+  levelRow: {
+    backgroundColor: C.card, borderRadius: 16, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderColor: C.border,
+  },
+  levelRowTitle: { fontSize: 15, fontWeight: '700', color: C.n900 },
+  levelRowXp: { fontSize: 12, color: C.n400, marginTop: 2 },
+  currentBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  currentBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  doneIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  doneText: { fontSize: 16, fontWeight: '700' },
+});

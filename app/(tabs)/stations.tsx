@@ -1,12 +1,13 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { C } from '../../constants/Colors';
 import { STATIONS, type Station } from '../../data/clinicalData';
@@ -52,7 +53,7 @@ function StepBuilder({ station }: { station: Station }) {
   return (
     <View style={sb.container}>
       <View style={sb.header}>
-        <Text style={sb.title}>Конструктор последовательности</Text>
+        <Text style={sb.title}>Последовательность</Text>
         <Text style={sb.hint}>
           Нажимай шаги в правильном порядке — первый нажатый = шаг 1, второй = шаг 2 и т.д.
         </Text>
@@ -60,12 +61,24 @@ function StepBuilder({ station }: { station: Station }) {
 
       <View style={sb.progressRow}>
         <View style={sb.progressBg}>
-          <View style={[sb.progressFill, {
-            width: `${(selected.length / allSteps.length) * 100}%` as any,
-            backgroundColor: finished ? C.success : C.primary,
-          }]} />
+          <LinearGradient
+            colors={
+              finished
+                ? (correctCount === allSteps.length ? ['#16A06B', '#3FC793'] : ['#D9534A', '#E8807A'])
+                : [C.primary500, C.primary600]
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[sb.progressFill, {
+              width: `${Math.max((finished ? correctCount / allSteps.length : selected.length / allSteps.length) * 100, 3)}%` as any,
+            }]}
+          >
+            <View style={sb.progressInsetLight} />
+          </LinearGradient>
         </View>
-        <Text style={sb.progressLabel}>{selected.length}/{allSteps.length}</Text>
+        <Text style={sb.progressLabel}>
+          {finished ? `${correctCount}/${allSteps.length}` : `${selected.length}/${allSteps.length}`}
+        </Text>
       </View>
 
       <View style={sb.stepsWrap}>
@@ -75,6 +88,7 @@ function StepBuilder({ station }: { station: Station }) {
           const isSelected = assignedOrder !== null;
           const isCorrect = finished && assignedOrder === correctOrder;
           const isWrong = finished && isSelected && assignedOrder !== correctOrder;
+          const isPending = !isSelected;
 
           let cardStyle = sb.stepCard;
           if (isCorrect) cardStyle = { ...sb.stepCard, ...sb.stepCardOk };
@@ -88,21 +102,31 @@ function StepBuilder({ station }: { station: Station }) {
               onPress={() => handleTap(step.id)}
               activeOpacity={0.7}
             >
-              <View style={[sb.orderBadge, {
-                backgroundColor: isCorrect ? C.success :
-                  isWrong ? C.danger :
-                  isSelected ? C.primary : C.border,
-              }]}>
-                <Text style={[sb.orderBadgeT, { color: isSelected ? '#fff' : C.muted }]}>
-                  {assignedOrder ?? '·'}
-                </Text>
+              <View style={[
+                sb.orderBadge,
+                isCorrect && sb.orderBadgeOk,
+                isWrong && sb.orderBadgeNo,
+                isSelected && !finished && sb.orderBadgeSel,
+                isPending && sb.orderBadgePending,
+              ]}>
+                {isPending ? (
+                  <View style={sb.pendingDash} />
+                ) : (
+                  <Text style={[sb.orderBadgeT, { color: isSelected ? '#fff' : C.n400 }]}>
+                    {assignedOrder}
+                  </Text>
+                )}
               </View>
               <Text style={[sb.stepText, {
-                color: isWrong ? C.danger : isCorrect ? C.success : C.text,
+                color: isCorrect ? '#0E6E4C' : C.n900,
               }]}>
                 {step.text}
               </Text>
-              {isCorrect && <Ionicons name="checkmark-circle" size={18} color={C.success} />}
+              {isCorrect && (
+                <View style={sb.checkCircle}>
+                  <Ionicons name="checkmark" size={12} color="#fff" />
+                </View>
+              )}
               {isWrong && (
                 <View style={sb.correctHint}>
                   <Text style={sb.correctHintT}>→{correctOrder}</Text>
@@ -114,9 +138,9 @@ function StepBuilder({ station }: { station: Station }) {
       </View>
 
       {finished && (
-        <View style={[sb.result, { borderColor: correctCount === allSteps.length ? C.success : C.primary }]}>
+        <View style={[sb.result, { borderColor: correctCount === allSteps.length ? '#16A06B' : C.primary500 }]}>
           <Text style={sb.resultScore}>
-            {correctCount}<Text style={{ fontSize: 20, color: C.muted }}>/{allSteps.length}</Text>
+            {correctCount}<Text style={{ fontSize: 20, color: C.n400 }}>/{allSteps.length}</Text>
           </Text>
           <Text style={sb.resultLabel}>
             {correctCount === allSteps.length ? 'Идеально! Все шаги верны' :
@@ -124,8 +148,14 @@ function StepBuilder({ station }: { station: Station }) {
              correctCount >= allSteps.length * 0.6 ? 'Хорошо, есть ошибки' :
              'Нужна практика'}
           </Text>
-          <TouchableOpacity style={[sb.btn, { backgroundColor: C.success }]} onPress={reset}>
-            <Text style={sb.btnT}>Попробовать снова</Text>
+          <TouchableOpacity style={sb.btn} onPress={reset}>
+            <LinearGradient
+              colors={['#16A06B', '#3FC793']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={sb.btnGradient}
+            >
+              <Text style={sb.btnT}>Попробовать снова</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       )}
@@ -147,7 +177,13 @@ function StationDetail({ station, onBack }: { station: Station; onBack: () => vo
 
   return (
     <View style={s.container}>
-      <View style={[s.hdr, { backgroundColor: station.color }]}>
+      <LinearGradient
+        colors={[C.navyDeep, C.navyBase, station.color]}
+        locations={[0, 0.55, 1.3]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={s.hdr}
+      >
         <TouchableOpacity onPress={onBack} style={s.backBtn}>
           <Ionicons name="chevron-back" size={18} color="#fff" />
           <Text style={s.backT}>Назад</Text>
@@ -156,7 +192,7 @@ function StationDetail({ station, onBack }: { station: Station; onBack: () => vo
           <Text style={s.hdrTitle}>{station.title}</Text>
           <Text style={s.hdrSub}>{station.duration} мин · {station.subtitle}</Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <View style={s.tabRow}>
         {tabs.map(t => (
@@ -193,7 +229,7 @@ function StationDetail({ station, onBack }: { station: Station; onBack: () => vo
                   <Ionicons
                     name={openGroup === group.title ? 'chevron-up' : 'chevron-down'}
                     size={16}
-                    color={C.muted}
+                    color={C.n400}
                   />
                 </TouchableOpacity>
                 {openGroup === group.title && (
@@ -201,7 +237,7 @@ function StationDetail({ station, onBack }: { station: Station; onBack: () => vo
                     {group.items.map((item, idx) => (
                       <View key={item.id} style={s.checkItem}>
                         <View style={[s.checkNum, {
-                          backgroundColor: group.title.startsWith('⚠️') ? '#FEF2F2' : station.bgColor,
+                          backgroundColor: group.title.startsWith('⚠️') ? '#FBEEEC' : station.bgColor,
                         }]}>
                           <Text style={[s.checkNumT, {
                             color: group.title.startsWith('⚠️') ? C.danger : station.color,
@@ -259,16 +295,16 @@ export default function StationsScreen() {
 
   return (
     <View style={s.container}>
-      <View style={s.hdr}>
+      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={s.hdr}>
         <View style={{ flex: 1 }}>
           <Text style={s.hdrTitle}>Станции аккредитации</Text>
           <Text style={s.hdrSub}>ОСКЭ · Первичная аккредитация · Стоматология</Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }} showsVerticalScrollIndicator={false}>
         <View style={s.infoBanner}>
-          <Ionicons name="information-circle-outline" size={18} color={C.primary} />
+          <Ionicons name="information-circle-outline" size={18} color={C.primary500} />
           <Text style={s.infoBannerT}>
             На каждой станции — алгоритм по паспорту МЦА, конструктор последовательности, типичные ошибки и ключевые фразы
           </Text>
@@ -291,7 +327,7 @@ export default function StationsScreen() {
               <Text style={s.stationTitle}>{station.title}</Text>
               <Text style={s.stationSub}>{station.subtitle}</Text>
               <View style={s.stationMeta}>
-                <Ionicons name="time-outline" size={12} color={C.muted} />
+                <Ionicons name="time-outline" size={12} color={C.n400} />
                 <Text style={s.stationMetaT}>{station.duration} мин</Text>
                 <View style={[s.metaDot, { backgroundColor: station.color }]} />
                 <Text style={s.stationMetaT}>
@@ -299,7 +335,7 @@ export default function StationsScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            <Ionicons name="chevron-forward" size={18} color={C.n400} />
           </TouchableOpacity>
         ))}
 
@@ -313,7 +349,6 @@ export default function StationsScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
-    backgroundColor: C.dark,
     paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 14,
     paddingHorizontal: 18,
@@ -330,32 +365,32 @@ const s = StyleSheet.create({
   },
   backT: { color: '#fff', fontSize: 13, fontWeight: '500' },
   tabRow: {
-    flexDirection: 'row', backgroundColor: C.white,
+    flexDirection: 'row', backgroundColor: C.card,
     borderBottomWidth: 1, borderBottomColor: C.border,
   },
   tab: {
     flex: 1, paddingVertical: 11, alignItems: 'center',
     borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
-  tabT: { fontSize: 11, color: C.muted, fontWeight: '500' },
+  tabT: { fontSize: 11, color: C.n500, fontWeight: '500' },
   briefingBox: {
     borderLeftWidth: 3, paddingLeft: 12,
-    backgroundColor: C.white, borderRadius: 10, padding: 14,
+    backgroundColor: C.card, borderRadius: 14, padding: 14,
   },
   briefingLabel: {
-    fontSize: 10, fontWeight: '800', color: C.muted,
+    fontSize: 10, fontWeight: '800', color: C.n400,
     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
   },
-  briefingText: { fontSize: 13, color: C.text2, lineHeight: 20 },
+  briefingText: { fontSize: 13, color: C.n700, lineHeight: 20 },
   groupCard: {
-    backgroundColor: C.white, borderRadius: 14, overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.04, elevation: 1,
+    backgroundColor: C.card, borderRadius: 16, overflow: 'hidden',
+    shadowColor: C.n900, shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
   },
   groupHeader: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between', padding: 14,
   },
-  groupTitle: { fontSize: 14, fontWeight: '700', color: C.text, flex: 1 },
+  groupTitle: { fontSize: 14, fontWeight: '700', color: C.n900, flex: 1 },
   groupItems: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
   checkItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   checkNum: {
@@ -363,33 +398,33 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
   },
   checkNumT: { fontSize: 11, fontWeight: '800' },
-  checkText: { fontSize: 13, color: C.text2, lineHeight: 19, flex: 1 },
-  sectionHint: { fontSize: 12, color: C.muted, lineHeight: 18, marginBottom: 4 },
+  checkText: { fontSize: 13, color: C.n700, lineHeight: 19, flex: 1 },
+  sectionHint: { fontSize: 12, color: C.n500, lineHeight: 18, marginBottom: 4 },
   mistakeCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: C.white, borderRadius: 12, padding: 14,
+    backgroundColor: C.card, borderRadius: 14, padding: 14,
     borderWidth: 1, borderColor: C.border,
   },
   mistakeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.danger, marginTop: 4, flexShrink: 0 },
-  mistakeText: { fontSize: 13, color: C.text2, lineHeight: 19, flex: 1 },
-  phraseCard: { borderLeftWidth: 3, paddingLeft: 12, backgroundColor: C.white, borderRadius: 10, padding: 14 },
-  phraseText: { fontSize: 13, color: C.text2, lineHeight: 20 },
+  mistakeText: { fontSize: 13, color: C.n700, lineHeight: 19, flex: 1 },
+  phraseCard: { borderLeftWidth: 3, paddingLeft: 12, backgroundColor: C.card, borderRadius: 14, padding: 14 },
+  phraseText: { fontSize: 13, color: C.n700, lineHeight: 20 },
   infoBanner: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: C.light, borderRadius: 12, padding: 12,
+    backgroundColor: C.primary50, borderRadius: 14, padding: 12,
     borderWidth: 1, borderColor: C.border,
   },
-  infoBannerT: { fontSize: 12, color: C.primary, lineHeight: 18, flex: 1 },
+  infoBannerT: { fontSize: 12, color: C.primary600, lineHeight: 18, flex: 1 },
   stationCard: {
-    backgroundColor: C.white, borderRadius: 16, padding: 16,
+    backgroundColor: C.card, borderRadius: 18, padding: 16,
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    shadowColor: C.n900, shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 },
   },
   stationIcon: { width: 54, height: 54, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  stationTitle: { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 3 },
-  stationSub: { fontSize: 12, color: C.muted, marginBottom: 6 },
+  stationTitle: { fontSize: 15, fontWeight: '700', color: C.n900, marginBottom: 3 },
+  stationSub: { fontSize: 12, color: C.n500, marginBottom: 6 },
   stationMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  stationMetaT: { fontSize: 11, color: C.muted },
+  stationMetaT: { fontSize: 11, color: C.n500 },
   metaDot: { width: 4, height: 4, borderRadius: 2 },
 });
 
@@ -397,40 +432,56 @@ const s = StyleSheet.create({
 const sb = StyleSheet.create({
   container: { gap: 12 },
   header: { gap: 4 },
-  title: { fontSize: 15, fontWeight: '700', color: C.text },
-  hint: { fontSize: 12, color: C.muted, lineHeight: 17 },
+  title: { fontSize: 15, fontWeight: '700', color: C.n900 },
+  hint: { fontSize: 12, color: C.n500, lineHeight: 17 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  progressBg: { flex: 1, height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: 6, borderRadius: 3 },
-  progressLabel: { fontSize: 12, fontWeight: '700', color: C.muted, width: 36, textAlign: 'right' },
+  progressBg: { flex: 1, height: 8, backgroundColor: C.n200, borderRadius: 999, overflow: 'hidden' },
+  progressFill: { height: 8, borderRadius: 999, overflow: 'hidden', position: 'relative' },
+  progressInsetLight: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(255,255,255,0.3)' },
+  progressLabel: { fontSize: 12, fontWeight: '700', color: C.n500, width: 36, textAlign: 'right' },
   stepsWrap: { gap: 8 },
   stepCard: {
-    backgroundColor: C.white, borderRadius: 12, padding: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    borderWidth: 1.5, borderColor: C.border,
-    shadowColor: '#000', shadowOpacity: 0.04, elevation: 1,
+    backgroundColor: C.card,
+    borderRadius: 14,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: C.border,
   },
-  stepCardSel: { borderColor: C.primary, backgroundColor: '#EFF6FF' },
-  stepCardOk: { borderColor: C.success, backgroundColor: '#F0FDF4' },
-  stepCardNo: { borderColor: C.danger, backgroundColor: '#FEF2F2' },
+ stepCardSel: { borderColor: C.primary500, backgroundColor: C.primary50, borderWidth: 1.5 },
+  stepCardOk: { borderColor: '#16A06B', backgroundColor: '#F3FBF7', borderWidth: 1 },
+  stepCardNo: { borderColor: C.border, backgroundColor: C.card, borderWidth: 1 },
   orderBadge: {
-    width: 28, height: 28, borderRadius: 8,
+    width: 28, height: 28, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    backgroundColor: C.n100, borderWidth: 1, borderColor: C.n200,
+  },
+  orderBadgePending: { borderStyle: 'dashed', backgroundColor: C.sunk },
+  orderBadgeSel: { backgroundColor: C.primary500, borderColor: C.primary500 },
+  orderBadgeOk: { backgroundColor: '#16A06B', borderColor: '#16A06B' },
+  orderBadgeNo: { backgroundColor: '#D9534A', borderColor: '#D9534A' },
+  orderBadgeT: { fontSize: 13, fontWeight: '800' },
+  pendingDash: { width: 8, height: 2, borderRadius: 1, backgroundColor: C.n300 },
+  stepText: { fontSize: 13, lineHeight: 18, flex: 1 },
+  checkCircle: {
+    width: 18, height: 18, borderRadius: 9, backgroundColor: '#16A06B',
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  orderBadgeT: { fontSize: 13, fontWeight: '800' },
-  stepText: { fontSize: 13, color: C.text, lineHeight: 18, flex: 1 },
   correctHint: {
-    backgroundColor: '#FEE2E2', borderRadius: 6,
+    backgroundColor: '#FBEEEC', borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 3, flexShrink: 0,
   },
-  correctHintT: { fontSize: 11, fontWeight: '700', color: C.danger },
+  correctHintT: { fontSize: 11, fontWeight: '700', color: '#D9534A' },
   result: {
-    backgroundColor: C.white, borderRadius: 16, padding: 24,
+    backgroundColor: C.card, borderRadius: 18, padding: 24,
     alignItems: 'center', gap: 8, borderWidth: 2,
-    shadowColor: '#000', shadowOpacity: 0.06, elevation: 2,
+    shadowColor: C.n900, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 },
   },
-  resultScore: { fontSize: 52, fontWeight: '900', color: C.text },
-  resultLabel: { fontSize: 14, color: C.text2, textAlign: 'center' },
-  btn: { borderRadius: 12, padding: 14, alignItems: 'center', width: '100%', marginTop: 4 },
+  resultScore: { fontSize: 52, fontWeight: '900', color: C.n900 },
+  resultLabel: { fontSize: 14, color: C.n700, textAlign: 'center' },
+  btn: { borderRadius: 14, width: '100%', marginTop: 4, overflow: 'hidden' },
+  btnGradient: { paddingVertical: 14, alignItems: 'center' },
   btnT: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

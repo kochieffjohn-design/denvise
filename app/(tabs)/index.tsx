@@ -1,9 +1,11 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { C } from '../../constants/Colors';
+import { Animated, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { C, SPECIALTY } from '../../constants/Colors';
+import { shadowCard } from '../../constants/shadows';
 import { getStats, type Stats } from '../../data/xpStorage';
 
 const TOTAL_DIAG = 17;
@@ -13,11 +15,11 @@ const MODULES = [
   {
     id: 'patient',
     title: 'ИИ-Пациент',
-    desc: 'Живой диалог с 6 психотипами через ИИ',
+    desc: 'Живой диалог с 6 психотипами',
     tag: '6 психотипов',
     ionIcon: 'chatbubble-ellipses-outline',
-    color: '#534AB7',
-    bg: '#EEEDFE',
+    color: SPECIALTY.emergency.solid,
+    bg: SPECIALTY.emergency.tint,
     route: '/patient',
   },
   {
@@ -26,28 +28,28 @@ const MODULES = [
     desc: 'Скрипты, золотые и запретные слова',
     tag: '19 скриптов',
     ionIcon: 'book-outline',
-    color: '#0F6E56',
-    bg: '#E1F5EE',
+    color: SPECIALTY.prosthetics.solid,
+    bg: SPECIALTY.prosthetics.tint,
     route: '/consult',
   },
   {
     id: 'reception',
     title: 'Приём',
-    desc: 'Протоколы по всем специальностям',
+    desc: '4 специальности',
     tag: '15 протоколов',
     mciIcon: 'tooth-outline',
-    color: '#185FA5',
-    bg: '#E6F1FB',
+    color: SPECIALTY.therapy.solid,
+    bg: SPECIALTY.therapy.tint,
     route: '/reception',
   },
   {
     id: 'diag',
     title: 'Диагностика',
-    desc: 'Кейсы с рентгеном, ЭОД, симптомами',
+    desc: 'Рентген · ЭОД · кейсы',
     tag: `${TOTAL_DIAG} кейсов`,
     ionIcon: 'search-outline',
-    color: '#2E7D32',
-    bg: '#E8F5E9',
+    color: SPECIALTY.prosthetics.solid,
+    bg: SPECIALTY.prosthetics.tint,
     route: '/diag',
     isNew: true,
     progressKey: 'diag',
@@ -56,11 +58,11 @@ const MODULES = [
   {
     id: 'comm',
     title: 'Коммуникация',
-    desc: 'Тренажёр живого диалога с пациентом',
+    desc: '8 психотипов пациентов',
     tag: `${TOTAL_COMM} сценариев`,
     ionIcon: 'people-outline',
-    color: '#993556',
-    bg: '#FBEAF0',
+    color: SPECIALTY.periodontology.solid,
+    bg: SPECIALTY.periodontology.tint,
     route: '/comm',
     isNew: true,
     progressKey: 'comm',
@@ -69,30 +71,107 @@ const MODULES = [
   {
     id: 'exam',
     title: 'Экзамен',
-    desc: 'Полный симулятор приёма — 4 этапа',
+    desc: 'Симулятор приёма · 4 этапа',
     tag: '12 кейсов',
     ionIcon: 'school-outline',
-    color: '#854F0B',
-    bg: '#FAEEDA',
+    color: SPECIALTY.orthodontics.solid,
+    bg: SPECIALTY.orthodontics.tint,
     route: '/exam',
   },
   {
     id: 'stations',
     title: 'Станции ОСКЭ',
-    desc: 'Алгоритмы аккредитационных станций',
+    desc: 'Алгоритмы аккредитации',
     tag: '6 станций',
     ionIcon: 'medal-outline',
-    color: '#7B1FA2',
-    bg: '#F3E5F5',
+    color: SPECIALTY.emergency.solid,
+    bg: SPECIALTY.emergency.tint,
     route: '/stations',
   },
+    {
+    id: 'emergencies',
+    title: 'Неотложка',
+    desc: 'Алгоритмы · Препараты · Ошибки',
+    tag: '8 состояний',
+    ionIcon: 'medkit-outline',
+    color: '#B91C1C',
+    bg: '#FEF2F2',
+    route: '/emergencies',
+  },
 ];
+
+function ModuleCard({ m, progress, onPress }: { m: typeof MODULES[0]; progress: { done: number; total: number } | null; onPress: () => void }) {
+  const scale = useState(new Animated.Value(1))[0];
+  const pct = progress ? progress.done / progress.total : 0;
+  const isDone = progress ? progress.done >= progress.total : false;
+
+  const onPressIn = () => Animated.timing(scale, { toValue: 0.97, duration: 100, useNativeDriver: true }).start();
+  const onPressOut = () => Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+
+  return (
+    <Animated.View style={[s.cardWrap, { transform: [{ scale }] }]}>
+      <TouchableOpacity
+        style={[s.card, shadowCard]}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        activeOpacity={1}
+      >
+        {m.isNew && !isDone && (
+          <View style={s.newBadge}>
+            <Text style={s.newBadgeT}>NEW</Text>
+          </View>
+        )}
+        {isDone && (
+          <View style={[s.newBadge, { backgroundColor: C.success }]}>
+            <Text style={s.newBadgeT}>✓</Text>
+          </View>
+        )}
+
+        <View style={[s.iconPlate, { backgroundColor: m.bg }]}>
+          <View style={s.iconPlateBlick} />
+          {(m as any).ionIcon
+            ? <Ionicons name={(m as any).ionIcon as any} size={22} color={m.color} />
+            : <MaterialCommunityIcons name={(m as any).mciIcon as any} size={22} color={m.color} />
+          }
+        </View>
+
+        <Text style={s.cardTitle}>{m.title}</Text>
+        <Text style={s.cardDesc}>{m.desc}</Text>
+
+        {progress ? (
+          <View style={s.progressWrap}>
+            <View style={s.progressBg}>
+              <LinearGradient
+                colors={[m.color, m.color + 'CC']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[s.progressFill, { width: `${Math.max(pct * 100, 4)}%` as any }]}
+              >
+                <View style={s.progressInsetLight} />
+              </LinearGradient>
+              {pct > 0.03 && pct < 1 && (
+                <View style={[s.progressDrop, { left: `${pct * 100}%` as any, backgroundColor: m.color }]} />
+              )}
+            </View>
+            <Text style={[s.progressLabel, { color: m.color }]}>
+              Прогресс {Math.round(pct * 100)}%
+            </Text>
+          </View>
+        ) : (
+          <View style={[s.tagWrap, { backgroundColor: m.bg }]}>
+            <Text style={[s.tagT, { color: m.color }]}>{m.tag}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats>({
-    xp: 0, diagCases: 0, commScenarios: 0, exams: 0,
-    lastUpdated: 0, streak: 0, lastActivityDate: '',
+    xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
   });
 
   useEffect(() => {
@@ -114,78 +193,41 @@ export default function HomeScreen() {
 
   return (
     <View style={s.container}>
-      <View style={s.header}>
-        <View>
-          <Text style={s.logo}><Text style={s.logoAccent}>Den</Text>vise</Text>
-          <Text style={s.subtitle}>Тренажёр стоматолога</Text>
+      <LinearGradient
+        colors={[C.navyDeep, C.navyBase]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={s.header}
+      >
+        <View style={s.headerGlow} pointerEvents="none" />
+        <View style={s.headerRow}>
+          <View>
+            <Text style={s.logo}><Text style={s.logoAccent}>Den</Text>vise</Text>
+            <Text style={s.subtitle}>Тренажёр стоматолога</Text>
+          </View>
+          <View style={s.headerRight}>
+            {stats.streak > 0 && (
+              <View style={s.streakBadge}>
+                <Text style={s.streakBadgeT}>🔥 {stats.streak}</Text>
+              </View>
+            )}
+            <TouchableOpacity style={s.xpBadge} onPress={() => router.push('/profile')}>
+              <Text style={s.xpBadgeT}>{stats.xp} XP</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={s.headerRight}>
-          {stats.streak > 0 && (
-            <View style={s.streakBadge}>
-              <Text style={s.streakBadgeT}>🔥 {stats.streak}</Text>
-            </View>
-          )}
-          <TouchableOpacity style={s.xpBadge} onPress={() => router.push('/profile')}>
-            <Text style={s.xpBadgeT}>{stats.xp} XP</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.grid}>
-          {MODULES.map(m => {
-            const progress = getProgress((m as any).progressKey);
-            const pct = progress ? progress.done / progress.total : 0;
-            const isDone = progress ? progress.done >= progress.total : false;
-
-            return (
-              <TouchableOpacity
-                key={m.id}
-                style={s.card}
-                onPress={() => router.push(m.route as any)}
-                activeOpacity={0.75}
-              >
-                {(m as any).isNew && !isDone && (
-                  <View style={s.newBadge}>
-                    <Text style={s.newBadgeT}>NEW</Text>
-                  </View>
-                )}
-                {isDone && (
-                  <View style={[s.newBadge, { backgroundColor: C.success }]}>
-                    <Text style={s.newBadgeT}>✓</Text>
-                  </View>
-                )}
-
-                <View style={[s.iconWrap, { backgroundColor: m.bg }]}>
-                  {(m as any).ionIcon
-                    ? <Ionicons name={(m as any).ionIcon as any} size={26} color={m.color} />
-                    : <MaterialCommunityIcons name={(m as any).mciIcon as any} size={26} color={m.color} />
-                  }
-                </View>
-
-                <Text style={s.cardTitle}>{m.title}</Text>
-                <Text style={s.cardDesc}>{m.desc}</Text>
-
-                {progress ? (
-                  <View style={s.progressWrap}>
-                    <View style={s.progressBg}>
-                      <View style={[s.progressFill, {
-                        width: `${pct * 100}%` as any,
-                        backgroundColor: m.color,
-                      }]} />
-                    </View>
-                    <Text style={[s.progressLabel, { color: m.color }]}>
-                      {progress.done}/{progress.total}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={[s.tagWrap, { backgroundColor: m.bg }]}>
-                    <Text style={[s.tagT, { color: m.color }]}>{m.tag}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
+          {MODULES.map(m => (
+            <ModuleCard
+              key={m.id}
+              m={m}
+              progress={getProgress((m as any).progressKey)}
+              onPress={() => router.push(m.route as any)}
+            />
+          ))}
         </View>
         <View style={{ height: 20 }} />
       </ScrollView>
@@ -196,27 +238,38 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
-    backgroundColor: C.dark,
     paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 18,
     paddingHorizontal: 20,
+    overflow: 'hidden',
+  },
+  headerGlow: {
+    position: 'absolute',
+    top: -60,
+    right: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    backgroundColor: 'rgba(59,130,246,0.30)',
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  logo: { fontSize: 28, fontWeight: '800', color: C.white, letterSpacing: -0.5 },
-  logoAccent: { color: C.accent },
-  subtitle: { color: 'rgba(255,255,255,0.45)', fontSize: 13, marginTop: 2 },
+  logo: { fontSize: 28, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  logoAccent: { color: C.primary500 },
+  subtitle: { color: 'rgba(255,255,255,0.5)', fontSize: 13, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   streakBadge: {
-    backgroundColor: '#FFF8E1',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: 'rgba(255,255,255,0.18)',
   },
-  streakBadgeT: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
+  streakBadgeT: { fontSize: 13, fontWeight: '700', color: '#fff' },
   xpBadge: {
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 20,
@@ -225,20 +278,15 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
   },
-  xpBadgeT: { color: C.white, fontSize: 13, fontWeight: '700' },
+  xpBadgeT: { color: '#fff', fontSize: 13, fontWeight: '700' },
   scroll: { padding: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  cardWrap: { width: '47.5%' },
   card: {
-    backgroundColor: C.white,
-    borderRadius: 18,
+    backgroundColor: C.card,
+    borderRadius: 20,
     padding: 16,
-    width: '47.5%',
     gap: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -249,18 +297,43 @@ const s = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 7,
     paddingVertical: 3,
+    zIndex: 2,
   },
-  newBadgeT: { color: C.white, fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
-  iconWrap: {
-    width: 50, height: 50, borderRadius: 14,
+  newBadgeT: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  iconPlate: {
+    width: 44, height: 44, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
+    position: 'relative', overflow: 'hidden',
   },
-  cardTitle: { fontSize: 15, fontWeight: '800', color: C.text, letterSpacing: -0.2 },
-  cardDesc: { fontSize: 12, color: C.muted, lineHeight: 17 },
+  iconPlateBlick: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: '50%',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  cardTitle: { fontSize: 15, fontWeight: '800', color: C.n900, letterSpacing: -0.2 },
+  cardDesc: { fontSize: 12, color: C.n500, lineHeight: 17 },
   tagWrap: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   tagT: { fontSize: 11, fontWeight: '700' },
-  progressWrap: { gap: 4 },
-  progressBg: { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' },
-  progressFill: { height: 5, borderRadius: 3 },
+  progressWrap: { gap: 5 },
+  progressBg: {
+    height: 8, backgroundColor: C.n200, borderRadius: 999,
+    overflow: 'visible', position: 'relative', justifyContent: 'center',
+  },
+  progressFill: {
+    height: 8, borderRadius: 999, overflow: 'hidden', position: 'relative',
+  },
+  progressInsetLight: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  progressDrop: {
+    position: 'absolute',
+    width: 10, height: 10, borderRadius: 5,
+    top: -1, marginLeft: -5,
+    borderWidth: 2, borderColor: '#fff',
+  },
   progressLabel: { fontSize: 10, fontWeight: '700' },
 });
