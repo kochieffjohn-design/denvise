@@ -133,6 +133,13 @@ app.post('/api/dentai/ask', limiter, async (req, res) => {
 // без полной системы доверия/раскрытия информации из спеки — это сознательно
 // оставлено на потом, сейчас цель — просто убрать ключ из клиента и завести
 // диалог.
+//
+// Жёсткая защита роли: слабые 1-2-предложенческие промпты персон иногда
+// "соскальзывают" — модель вместо реплики пациента начинает говорить как
+// эксперт/врач, хвалить план лечения профессиональным тоном и т.д. Этот
+// префикс приклеивается к любому промпту персоны и держит модель в роли.
+const PATIENT_ROLE_GUARD = `Важно и обязательно: ты играешь ТОЛЬКО пациента, от первого лица, на приёме у стоматолога. Пользователь — это врач, а не ты. Ты НИКОГДА не переключаешься на роль врача: не хвалишь план лечения как эксперт, не подтверждаешь профессиональную правильность его слов, не даёшь клинических рекомендаций. Твои реплики — это то, что говорит именно пациент: вопрос, эмоция, сомнение, согласие, возражение — коротко и по-человечески, в характере своего психотипа. Никогда не пиши фразы вида "вы всё верно" или "приятно, когда пациент внимателен" — это ты и есть пациент, а не наблюдатель со стороны.`;
+
 app.post('/api/patient/chat', limiter, async (req, res) => {
   try {
     const patientId = req.body?.patientId;
@@ -146,8 +153,11 @@ app.post('/api/patient/chat', limiter, async (req, res) => {
       return res.status(400).json({ error: history.error });
     }
 
-    const result = await askWithSystemPrompt(patient.systemPrompt, history, { maxTokens: 900
-      , temperature: 0.7 });
+    const result = await askWithSystemPrompt(
+      `${PATIENT_ROLE_GUARD}\n\n${patient.systemPrompt}`,
+      history,
+      { maxTokens: 900, temperature: 0.6 }
+    );
     res.json({ answer: result.answer, model: result.model, usage: result.usage });
   } catch (err) {
     console.error('[patient/chat] error:', err);
