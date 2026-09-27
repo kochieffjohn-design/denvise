@@ -1,11 +1,11 @@
+import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
-import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { askDentAI, askWithSystemPrompt, type ChatMessage } from './llm';
-import { getChunkByNumber, getKnowledgeBaseStats } from './knowledgeBase';
-import { checkCitations } from './citations';
 import { PATIENTS } from '../data/patients';
+import { checkCitations } from './citations';
+import { getChunkByNumber, getKnowledgeBaseStats } from './knowledgeBase';
+import { askDentAI, askWithSystemPrompt, type ChatMessage } from './llm';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 8787;
@@ -146,7 +146,8 @@ app.post('/api/patient/chat', limiter, async (req, res) => {
       return res.status(400).json({ error: history.error });
     }
 
-    const result = await askWithSystemPrompt(patient.systemPrompt, history, { maxTokens: 300, temperature: 0.7 });
+    const result = await askWithSystemPrompt(patient.systemPrompt, history, { maxTokens: 900
+      , temperature: 0.7 });
     res.json({ answer: result.answer, model: result.model, usage: result.usage });
   } catch (err) {
     console.error('[patient/chat] error:', err);
