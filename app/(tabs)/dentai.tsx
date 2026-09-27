@@ -1,256 +1,406 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { C } from '../../constants/Colors';
+import { DENTAI_API_URL } from '../../constants/config';
 
-const FEATURES = [
-  {
-    icon: 'book-open-outline',
-    lib: 'MaterialCommunityIcons',
-    title: 'Только проверенные источники',
-    desc: 'Максимовский, Боровский, протоколы МЗ РФ, клинические рекомендации СтАР',
-    color: '#3A6FD8',
-    bg: '#ECF1FB',
-  },
-  {
-    icon: 'target',
-    lib: 'MaterialCommunityIcons',
-    title: 'Точные ответы с цитатами',
-    desc: 'Указывает источник и страницу — никаких галлюцинаций и домыслов',
-    color: '#2E9C78',
-    bg: '#E8F6F0',
-  },
-  {
-    icon: 'flash-outline',
-    lib: 'Ionicons',
-    title: 'Мгновенный поиск',
-    desc: 'Дозировки, протоколы, дифдиагностика — за секунды',
-    color: '#BC8F37',
-    bg: '#F8F2E2',
-  },
-  {
-    icon: 'shield-check-outline',
-    lib: 'MaterialCommunityIcons',
-    title: 'Медицински верифицирован',
-    desc: 'База знаний проверена практикующими стоматологами МГМСУ',
-    color: '#7A5BD0',
-    bg: '#F0ECFB',
-  },
-];
+type VerifiedSource = { number: number; source: string; title: string };
+type Msg = {
+  role: 'user' | 'assistant';
+  content: string;
+  isError?: boolean;
+  sources?: VerifiedSource[];
+  flagged?: boolean;
+};
 
-const EXAMPLES = [
-  'Доза артикаина при мандибулярной анестезии у ребёнка 8 лет?',
-  'Дифференциальная диагностика острого пульпита и периодонтита',
-  'Протокол лечения кариеса дентина по Максимовскому',
-  'Противопоказания к удалению зуба при приёме варфарина',
+const SUGGESTED_QUESTIONS = [
+  'Дифдиагностика кариеса дентина и острого пульпита?',
+  'Протокол лечения острого периодонтита',
+  'Как объяснить пациенту, зачем нужна профгигиена?',
+  'Что делать при возражении «дорого» на импланты?',
 ];
 
 export default function DentAIScreen() {
-  const [showForm, setShowForm] = useState(false);
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Кэш сырых текстов источников (см. GET /api/dentai/source/:number) — чтобы
+  // при повторном открытии того же источника не дёргать сервер заново.
+  const [sourceTexts, setSourceTexts] = useState<Record<number, string>>({});
+  const [expandedSources, setExpandedSources] = useState<Set<number>>(new Set());
+  const [loadingSource, setLoadingSource] = useState<number | null>(null);
+
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollToEnd = () => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+  };
+
+  const send = async (textOverride?: string) => {
+    const text = (textOverride ?? input).trim();
+    if (!text || loading) return;
+
+    const next: Msg[] = [...msgs, { role: 'user', content: text }];
+    setMsgs(next);
+    setInput('');
+    setLoading(true);
+    scrollToEnd();
+
+    try {
+      const res = await fetch(`${DENTAI_API_URL}/api/dentai/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: next.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMsgs([
+          ...next,
+          { role: 'assistant', content: data?.error || 'Сервер вернул ошибку.', isError: true },
+        ]);
+      } else {
+        setMsgs([
+          ...next,
+          {
+            role: 'assistant',
+            content: data.answer || '(пустой ответ)',
+            sources: data.sources || [],
+            flagged: !!data.flagged,
+          },
+        ]);
+      }
+    } catch {
+      setMsgs([
+        ...next,
+        {
+          role: 'assistant',
+          isError: true,
+          content:
+            'Не удалось связаться с сервером ДентИИ. Проверьте подключение или адрес сервера в constants/config.ts.',
+        },
+      ]);
+    } finally {
+      setLoading(false);
+      scrollToEnd();
+    }
+  };
+
+  const resetChat = () => {
+    setMsgs([]);
+    setExpandedSources(new Set());
+  };
+
+  const toggleSource = async (number: number) => {
+    const isOpen = expandedSources.has(number);
+    const nextSet = new Set(expandedSources);
+    if (isOpen) {
+      nextSet.delete(number);
+      setExpandedSources(nextSet);
+      return;
+    }
+    nextSet.add(number);
+    setExpandedSources(nextSet);
+
+    if (sourceTexts[number]) return; // уже загружено раньше
+
+    setLoadingSource(number);
+    try {
+      const res = await fetch(`${DENTAI_API_URL}/api/dentai/source/${number}`);
+      const data = await res.json();
+      if (res.ok) {
+        setSourceTexts((prev) => ({ ...prev, [number]: data.text }));
+      } else {
+        setSourceTexts((prev) => ({ ...prev, [number]: `Не удалось загрузить источник: ${data?.error ?? ''}` }));
+      }
+    } catch {
+      setSourceTexts((prev) => ({ ...prev, [number]: 'Не удалось загрузить источник (нет связи с сервером).' }));
+    } finally {
+      setLoadingSource(null);
+    }
+  };
 
   return (
-    <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-
-      {/* Хедер */}
-      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={s.header}>
-        <View style={s.headerGlow} pointerEvents="none" />
-        <View style={s.headerRow}>
-          <View style={s.headerIconWrap}>
-            <MaterialCommunityIcons name="brain" size={22} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.title}>ДентИИ</Text>
-            <Text style={s.titleSub}>Клинический ИИ-советник</Text>
-          </View>
-          <View style={s.soonBadge}>
-            <Text style={s.soonBadgeT}>Скоро</Text>
-          </View>
+    <KeyboardAvoidingView
+      style={s.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={80}
+    >
+      <View style={s.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.title}>🧠 ДентИИ</Text>
+          <Text style={s.subtitle}>Только по базе знаний Denvise</Text>
         </View>
-      </LinearGradient>
+        {msgs.length > 0 && (
+          <TouchableOpacity onPress={resetChat} style={s.resetBtn}>
+            <Text style={s.resetBtnText}>Новый чат</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <View style={s.disclaimer}>
+        <Text style={s.disclaimerText}>
+          Вспомогательный инструмент, не замена клиническому суждению. Финальное решение — за врачом.
+        </Text>
+      </View>
 
-        {/* Герой */}
-        <LinearGradient colors={[C.navyBase, '#232E52']} style={s.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <View style={s.heroGlow} pointerEvents="none" />
-          <View style={s.heroBadgeWrap}>
-            <View style={s.heroBadge}>
-              <MaterialCommunityIcons name="brain" size={16} color={C.primary500} />
-              <Text style={s.heroBadgeT}>RAG · Российские источники</Text>
-            </View>
-          </View>
-          <Text style={s.heroTitle}>Первый стоматологический{'\n'}ИИ на основе протоколов МЗ РФ</Text>
-          <Text style={s.heroSub}>Спроси о дозировке, протоколе или дифдиагностике — получи ответ с указанием источника и страницы</Text>
-        </LinearGradient>
-
-        {/* Фичи */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Что умеет ДентИИ</Text>
-          {FEATURES.map((f, i) => (
-            <View key={i} style={s.featureRow}>
-              <View style={[s.featureIcon, { backgroundColor: f.bg, position: 'relative', overflow: 'hidden' }]}>
-                <View style={s.featureIconBlick} />
-                {f.lib === 'Ionicons'
-                  ? <Ionicons name={f.icon as any} size={20} color={f.color} />
-                  : <MaterialCommunityIcons name={f.icon as any} size={20} color={f.color} />
-                }
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.featureTitle}>{f.title}</Text>
-                <Text style={s.featureDesc}>{f.desc}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Примеры */}
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Примеры вопросов</Text>
-          {EXAMPLES.map((q, i) => (
-            <View key={i} style={s.exampleRow}>
-              <View style={s.exampleDot}>
-                <Ionicons name="arrow-forward" size={12} color={C.primary500} />
-              </View>
-              <Text style={s.exampleText}>«{q}»</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Цена */}
-        <LinearGradient colors={[C.primary600, C.primary500]} style={s.pricingCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <View style={s.pricingTopRow}>
-            <View style={s.pricingBadge}>
-              <Text style={s.pricingBadgeT}>ПРЕМИУМ</Text>
-            </View>
-          </View>
-          <Text style={s.pricingPrice}>399 ₽<Text style={s.pricingPer}> / месяц</Text></Text>
-          <View style={s.pricingFeatures}>
-            {['Безлимитные запросы', 'Все источники', 'Приоритетные обновления'].map((f, i) => (
-              <View key={i} style={s.pricingFeatureRow}>
-                <Ionicons name="checkmark-circle" size={15} color="rgba(255,255,255,0.9)" />
-                <Text style={s.pricingFeatureT}>{f}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
-
-        {/* Вейтлист */}
-        {!submitted ? (
-          <View style={s.waitlistCard}>
-            <View style={s.waitlistIcon}>
-              <Ionicons name="notifications-outline" size={22} color={C.primary500} />
-            </View>
-            <Text style={s.waitlistTitle}>Узнать первым о запуске</Text>
-            <Text style={s.waitlistDesc}>Оставьте email — уведомим когда ДентИИ станет доступен и дадим скидку 50% на первый месяц</Text>
-            {!showForm ? (
-              <TouchableOpacity style={s.btnP} onPress={() => setShowForm(true)} activeOpacity={0.85}>
-                <LinearGradient colors={[C.primary500, C.primary600]} style={s.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                  <Text style={s.btnPT}>Хочу попасть в список ожидания</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ) : (
-              <View style={s.formWrap}>
-                <TextInput
-                  style={s.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="Ваш email"
-                  placeholderTextColor={C.n400}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity
-                  style={[s.btnP, { opacity: email.includes('@') ? 1 : 0.4 }]}
-                  onPress={() => { if (email.includes('@')) setSubmitted(true); }}
-                  disabled={!email.includes('@')}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient colors={[C.primary500, C.primary600]} style={s.btnGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <Ionicons name="checkmark" size={16} color="#fff" />
-                    <Text style={s.btnPT}>Записаться</Text>
-                  </LinearGradient>
+      <ScrollView
+        ref={scrollRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {msgs.length === 0 && (
+          <View style={s.introCard}>
+            <Text style={s.introTitle}>Спросите про протокол, диагностику или разговор с пациентом</Text>
+            <Text style={s.introSub}>
+              Ответы — только по протоколам, клиническим случаям и скриптам Denvise. Если в базе
+              нет ответа, ДентИИ так и скажет — не станет придумывать. Под каждым ответом — реальные
+              источники, на которые он опирается, их можно открыть и проверить самому.
+            </Text>
+            <View style={{ gap: 8, marginTop: 14 }}>
+              {SUGGESTED_QUESTIONS.map((q, i) => (
+                <TouchableOpacity key={i} style={s.suggestChip} onPress={() => send(q)}>
+                  <Text style={s.suggestChipText}>{q}</Text>
                 </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        ) : (
-          <View style={[s.waitlistCard, { alignItems: 'center' }]}>
-            <View style={[s.waitlistIcon, { backgroundColor: '#E8F6F0', marginBottom: 8 }]}>
-              <Ionicons name="checkmark-circle" size={22} color="#2E9C78" />
+              ))}
             </View>
-            <Text style={[s.waitlistTitle, { textAlign: 'center' }]}>Вы в списке!</Text>
-            <Text style={[s.waitlistDesc, { textAlign: 'center' }]}>Уведомим о запуске и пришлём промокод на скидку 50%</Text>
           </View>
         )}
 
-        <View style={{ height: 20 }} />
+        {msgs.map((m, i) => {
+          if (m.role === 'user') {
+            return (
+              <View key={i} style={s.userBubbleWrap}>
+                <View style={s.userBubble}>
+                  <Text style={s.userBubbleText}>{m.content}</Text>
+                </View>
+              </View>
+            );
+          }
+          return (
+            <View key={i} style={s.assistantBubbleWrap}>
+              <View style={[s.assistantBubble, m.isError && s.assistantBubbleError]}>
+                <Text style={[s.assistantBubbleText, m.isError && s.assistantBubbleErrorText]}>
+                  {m.content}
+                </Text>
+
+                {m.flagged && !m.isError && (
+                  <View style={s.flagBanner}>
+                    <Text style={s.flagBannerText}>
+                      ⚠️ Модель сослалась на источник, которого нет в базе, либо не указала источники вообще.
+                      Проверьте ответ особенно внимательно.
+                    </Text>
+                  </View>
+                )}
+
+                {!!m.sources?.length && (
+                  <View style={s.sourcesWrap}>
+                    <Text style={s.sourcesLabel}>Источники:</Text>
+                    <View style={{ gap: 6 }}>
+                      {m.sources.map((src) => {
+                        const isOpen = expandedSources.has(src.number);
+                        return (
+                          <View key={src.number}>
+                            <TouchableOpacity style={s.sourceChip} onPress={() => toggleSource(src.number)}>
+                              <Text style={s.sourceChipText}>
+                                #{src.number} {src.title} {isOpen ? '▲' : '▼'}
+                              </Text>
+                            </TouchableOpacity>
+                            {isOpen && (
+                              <View style={s.sourceText}>
+                                {loadingSource === src.number ? (
+                                  <ActivityIndicator size="small" color={C.primary} />
+                                ) : (
+                                  <Text style={s.sourceTextContent}>{sourceTexts[src.number]}</Text>
+                                )}
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        })}
+
+        {loading && (
+          <View style={s.assistantBubbleWrap}>
+            <View style={[s.assistantBubble, s.loadingBubble]}>
+              <ActivityIndicator size="small" color={C.primary} />
+              <Text style={s.loadingText}>Ищу в базе Denvise…</Text>
+            </View>
+          </View>
+        )}
       </ScrollView>
+
+      <View style={s.inputBar}>
+        <TextInput
+          style={s.input}
+          value={input}
+          onChangeText={setInput}
+          placeholder="Например: доза артикаина у ребёнка 8 лет"
+          placeholderTextColor={C.muted}
+          multiline
+          editable={!loading}
+        />
+        <TouchableOpacity
+          style={[s.sendBtn, (!input.trim() || loading) && { opacity: 0.4 }]}
+          onPress={() => send()}
+          disabled={!input.trim() || loading}
+        >
+          <Text style={s.sendBtnText}>➤</Text>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-
-  // Хедер
   header: {
+    backgroundColor: C.dark,
     paddingTop: Platform.OS === 'ios' ? 54 : 44,
-    paddingBottom: 14,
-    paddingHorizontal: 18,
-    overflow: 'hidden',
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  headerGlow: { position: 'absolute', top: -50, right: -30, width: 150, height: 150, borderRadius: 999, backgroundColor: 'rgba(59,130,246,0.25)' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerIconWrap: { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  title: { color: '#fff', fontSize: 19, fontWeight: '800', letterSpacing: -0.3 },
-  titleSub: { color: 'rgba(255,255,255,0.55)', fontSize: 11, marginTop: 1 },
-  soonBadge: { backgroundColor: C.primary50, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  soonBadgeT: { color: C.primary600, fontSize: 12, fontWeight: '700' },
+  title: { color: C.white, fontSize: 22, fontWeight: '800' },
+  subtitle: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 2 },
+  resetBtn: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  resetBtnText: { color: C.white, fontSize: 12, fontWeight: '700' },
 
-  // Герой
-  hero: { borderRadius: 20, padding: 24, overflow: 'hidden', position: 'relative', gap: 12 },
-  heroGlow: { position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: 999, backgroundColor: 'rgba(59,130,246,0.20)' },
-  heroBadgeWrap: { flexDirection: 'row' },
-  heroBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(59,130,246,0.15)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)' },
-  heroBadgeT: { color: C.accent, fontSize: 11, fontWeight: '700' },
-  heroTitle: { color: '#fff', fontSize: 20, fontWeight: '800', lineHeight: 28, letterSpacing: -0.3 },
-  heroSub: { color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 20 },
+  disclaimer: {
+    backgroundColor: C.warnBg,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  disclaimerText: { color: '#92600a', fontSize: 11, lineHeight: 15, textAlign: 'center' },
 
-  // Карточки
-  scroll: { padding: 14, gap: 12, paddingBottom: 40 },
-  card: { backgroundColor: C.card, borderRadius: 18, padding: 18, shadowColor: C.n900, shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, gap: 14 },
-  cardTitle: { fontSize: 15, fontWeight: '800', color: C.n900, letterSpacing: -0.2 },
-  featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  featureIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  featureIconBlick: { position: 'absolute', top: 0, left: 0, right: 0, height: '50%', backgroundColor: 'rgba(255,255,255,0.35)', borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-  featureTitle: { fontSize: 14, fontWeight: '700', color: C.n900, marginBottom: 3 },
-  featureDesc: { fontSize: 12, color: C.n500, lineHeight: 17 },
-  exampleRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  exampleDot: { width: 22, height: 22, borderRadius: 7, backgroundColor: C.primary50, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
-  exampleText: { fontSize: 13, color: C.n700, lineHeight: 19, flex: 1, fontStyle: 'italic' },
+  scroll: { padding: 16, paddingBottom: 24, gap: 10 },
 
-  // Цена
-  pricingCard: { borderRadius: 18, padding: 22, gap: 12 },
-  pricingTopRow: { flexDirection: 'row' },
-  pricingBadge: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 4 },
-  pricingBadgeT: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 1 },
-  pricingPrice: { color: '#fff', fontSize: 38, fontWeight: '900', letterSpacing: -1 },
-  pricingPer: { fontSize: 16, fontWeight: '400', color: 'rgba(255,255,255,0.75)' },
-  pricingFeatures: { gap: 8 },
-  pricingFeatureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  pricingFeatureT: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '500' },
+  introCard: {
+    backgroundColor: C.white,
+    borderRadius: 16,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    elevation: 2,
+  },
+  introTitle: { fontSize: 16, fontWeight: '700', color: C.text, marginBottom: 6 },
+  introSub: { fontSize: 13, color: C.muted, lineHeight: 19 },
+  suggestChip: {
+    backgroundColor: C.light,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  suggestChipText: { fontSize: 13, color: C.primary, fontWeight: '600' },
 
-  // Вейтлист
-  waitlistCard: { backgroundColor: C.card, borderRadius: 18, padding: 20, shadowColor: C.n900, shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, gap: 10 },
-  waitlistIcon: { width: 46, height: 46, borderRadius: 14, backgroundColor: C.primary50, alignItems: 'center', justifyContent: 'center' },
-  waitlistTitle: { fontSize: 16, fontWeight: '800', color: C.n900 },
-  waitlistDesc: { fontSize: 13, color: C.n500, lineHeight: 19 },
-  formWrap: { gap: 10 },
-  input: { backgroundColor: C.sunk, borderRadius: 14, padding: 14, fontSize: 14, color: C.n900, borderWidth: 1.5, borderColor: C.border },
-  btnP: { borderRadius: 14, overflow: 'hidden' },
-  btnGrad: { paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  btnPT: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  userBubbleWrap: { alignItems: 'flex-end' },
+  userBubble: {
+    backgroundColor: C.primary,
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    maxWidth: '85%',
+  },
+  userBubbleText: { color: C.white, fontSize: 14, lineHeight: 20 },
+
+  assistantBubbleWrap: { alignItems: 'flex-start' },
+  assistantBubble: {
+    backgroundColor: C.white,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    maxWidth: '92%',
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  assistantBubbleError: { backgroundColor: C.dangerBg, borderColor: C.danger },
+  assistantBubbleText: { color: C.text, fontSize: 14, lineHeight: 20 },
+  assistantBubbleErrorText: { color: C.danger },
+
+  flagBanner: {
+    backgroundColor: C.warnBg,
+    borderRadius: 10,
+    padding: 8,
+    marginTop: 8,
+  },
+  flagBannerText: { color: '#92600a', fontSize: 11, lineHeight: 15 },
+
+  sourcesWrap: { marginTop: 10, gap: 6 },
+  sourcesLabel: { color: C.muted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  sourceChip: {
+    backgroundColor: C.bg,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    alignSelf: 'flex-start',
+  },
+  sourceChipText: { color: C.primary, fontSize: 12, fontWeight: '600' },
+  sourceText: {
+    backgroundColor: C.bg,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 4,
+  },
+  sourceTextContent: { color: C.text2, fontSize: 12, lineHeight: 18 },
+
+  loadingBubble: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  loadingText: { color: C.muted, fontSize: 13 },
+
+  inputBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    padding: 12,
+    backgroundColor: C.white,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: C.bg,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: C.text,
+    maxHeight: 100,
+    borderWidth: 1.5,
+    borderColor: C.border,
+  },
+  sendBtn: {
+    backgroundColor: C.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendBtnText: { color: C.white, fontSize: 18, fontWeight: '700' },
 });
