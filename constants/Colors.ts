@@ -42,6 +42,9 @@ export const C = {
   success: '#16A06B',
   danger: '#D9534A',
   warn: '#E0A53A',
+  successBg: '#E7F6EF',
+  dangerBg: '#FBECEB',
+  warnBg: '#FCF4E3',
 
   // ── Радиусы скругления ──
   radiusXs: 8,

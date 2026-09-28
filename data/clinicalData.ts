@@ -1,6 +1,6 @@
 export { COMM_SCENARIOS, FORBIDDEN_WORDS, GOLDEN_WORDS } from './commData';
 export { COMM_QUIZ, getQuizForStage, shuffleOptions, type CommQuizOption, type CommQuizQuestion } from './commQuizData';
-export { CONSULT_SECTIONS, GLOSSARY } from './consultData';
+export { CONSULT_SECTIONS, GLOSSARY, type Script, type Section } from './consultData';
 export { DIAG_CASES } from './diagCases';
 export { EMERGENCIES, getEmergencyById, type Emergency, type EmergencyGroup, type EmergencyStep } from './emergencyData';
 export { PATIENTS } from './patients';

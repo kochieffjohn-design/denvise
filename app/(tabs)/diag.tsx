@@ -187,6 +187,7 @@ export default function DiagScreen() {
   const [selDiag, setSelDiag] = useState('');
   const [diagAnswered, setDiagAnswered] = useState(false);
   const [score, setScore] = useState(0);
+  const [diagOptions, setDiagOptions] = useState<string[]>([]);
   const [done, setDone] = useState<Record<string, { passed: boolean; xp: number }>>({});
   const [donePersisted, setDonePersisted] = useState<string[]>([]);
 
@@ -315,7 +316,6 @@ export default function DiagScreen() {
   // ── ДИАГНОЗ ──
   if (phase === 'diagnosis' && active) {
     const correct = active.questions[0];
-    const shuffled = [...correct.options].sort(() => Math.random() - 0.5);
     return (
       <View style={s.container}>
         <View style={s.hdr}>
@@ -347,7 +347,7 @@ export default function DiagScreen() {
           <View style={s.card}>
             <Text style={s.cardTitle}>Диагноз по МКБ-10</Text>
             <Text style={s.cardHint}>Выберите один вариант:</Text>
-            {shuffled.map((opt, i) => {
+            {diagOptions.map((opt, i) => {
               let style = s.opt;
               if (diagAnswered) {
                 if (opt === correct.options[correct.correct]) style = { ...s.opt, ...s.optOk };
@@ -432,7 +432,10 @@ export default function DiagScreen() {
 
           <TouchableOpacity
             style={[s.btnP, { opacity: selectedMethods.length > 0 ? 1 : 0.4 }]}
-            onPress={() => setPhase('diagnosis')}
+            onPress={() => {
+              setDiagOptions([...active.questions[0].options].sort(() => Math.random() - 0.5));
+              setPhase('diagnosis');
+            }}
             disabled={selectedMethods.length === 0}
           >
             <Text style={s.btnPT}>Перейти к диагнозу →</Text>

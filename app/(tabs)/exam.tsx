@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Platform,
   ScrollView,
@@ -543,7 +543,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 // ─── ЭКРАН ───────────────────────────────────────────────────────────────────
 export default function ExamScreen() {
-  const [caseIdx, setCaseIdx] = useState(0);
+  const [caseIdx, setCaseIdx] = useState(() => Math.floor(Math.random() * CASES.length));
   const [phase, setPhase] = useState<1 | 2 | 3 | 4>(1);
 
   // Phase 1 — анамнез
@@ -560,9 +560,9 @@ export default function ExamScreen() {
   const [stepOrder, setStepOrder] = useState<Record<string, number | null>>({});
   const [finished, setFinished] = useState(false);
 
-  // Shuffle refs
-  const shuffDiag = useRef<string[]>([]);
-  const shuffSteps = useRef<RecStep[]>([]);
+  // Перемешанные варианты для этапов 3 и 4
+  const [shuffDiag, setShuffDiag] = useState<string[]>([]);
+  const [shuffSteps, setShuffSteps] = useState<RecStep[]>([]);
 
   const c = CASES[caseIdx];
 
@@ -575,18 +575,15 @@ export default function ExamScreen() {
     setDiagConfirmed(false);
     setStepOrder({});
     setFinished(false);
-    shuffDiag.current = shuffle(CASES[idx].diagOptions);
-    shuffSteps.current = shuffle(CASES[idx].recSteps);
+    setShuffDiag(shuffle(CASES[idx].diagOptions));
+    setShuffSteps(shuffle(CASES[idx].recSteps));
   }, []);
-
-  // Init first case
-  useState(() => { initCase(Math.floor(Math.random() * CASES.length)); });
 
   const askQuestion = (id: string) => {
     if (!askedQs.includes(id)) setAskedQs(p => [...p, id]);
   };
 
-  const useMethod = (id: string) => {
+  const applyMethod = (id: string) => {
     if (!usedMethods.includes(id)) setUsedMethods(p => [...p, id]);
   };
 
@@ -775,7 +772,7 @@ export default function ExamScreen() {
                 const used = usedMethods.includes(m.id);
                 return (
                   <TouchableOpacity key={m.id} style={[s.methodBtn, used && s.methodBtnUsed]}
-                    onPress={() => useMethod(m.id)} activeOpacity={0.7}>
+                    onPress={() => applyMethod(m.id)} activeOpacity={0.7}>
                     <View style={s.methodTop}>
                       <Text style={[s.methodLabel, used && { color: C.primary }]}>{m.label}</Text>
                       {used && <View style={[s.methodDot, { backgroundColor: m.isRequired ? C.success : C.warn }]} />}
@@ -786,7 +783,7 @@ export default function ExamScreen() {
               })}
             </View>
             <TouchableOpacity style={[s.btnP, { marginTop: 14, opacity: usedMethods.length >= 2 ? 1 : 0.4 }]}
-              onPress={() => { setPhase(3); shuffDiag.current = shuffle(c.diagOptions); }} disabled={usedMethods.length < 2}>
+              onPress={() => { setPhase(3); setShuffDiag(shuffle(c.diagOptions)); }} disabled={usedMethods.length < 2}>
               <Text style={s.btnPT}>Поставить диагноз →</Text>
             </TouchableOpacity>
           </View>
@@ -811,7 +808,7 @@ export default function ExamScreen() {
               })}
             </View>
 
-            {shuffDiag.current.map((d, i) => {
+            {shuffDiag.map((d, i) => {
               let style = s.opt;
               if (diagConfirmed) {
                 if (d === c.correctDiag) style = { ...s.opt, ...s.optOk };
@@ -838,7 +835,7 @@ export default function ExamScreen() {
                   <Text style={s.reasonT}>{c.diagReason}</Text>
                 </View>
                 <TouchableOpacity style={[s.btnP, { marginTop: 12 }]}
-                  onPress={() => { setPhase(4); shuffSteps.current = shuffle(c.recSteps); }}>
+                  onPress={() => { setPhase(4); setShuffSteps(shuffle(c.recSteps)); }}>
                   <Text style={s.btnPT}>Далее — Тактика →</Text>
                 </TouchableOpacity>
               </>
@@ -852,7 +849,7 @@ export default function ExamScreen() {
             <Text style={s.cardT}>Расставьте шаги тактики по порядку</Text>
             <Text style={s.cardHint}>Нажмите на цифру рядом с шагом чтобы назначить его порядковый номер. Цифры 1–{c.recSteps.length}.</Text>
             <View style={{ gap: 8 }}>
-              {shuffSteps.current.map(st => {
+              {shuffSteps.map(st => {
                 const assigned = stepOrder[st.id];
                 return (
                   <View key={st.id} style={s.tacticRow}>

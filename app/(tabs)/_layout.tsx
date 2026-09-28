@@ -53,7 +53,6 @@ export default function TabLayout() {
       <Tabs.Screen name="consult"   options={{ href: null }} />
       <Tabs.Screen name="stations"  options={{ href: null }} />
       <Tabs.Screen name="emergencies" options={{ href: null }} />
-      <Tabs.Screen name="explore"   options={{ href: null }} />
     </Tabs>
   );
 }
