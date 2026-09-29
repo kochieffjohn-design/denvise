@@ -28,6 +28,33 @@
       Отступ от выреза считает hooks/useSafeLayout.ts.
     -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      /*
+        iOS, установленное приложение + black-translucent: страница начинается
+        под строкой с часами, но её высота считается как «экран минус эта
+        строка», и снизу остаётся пустая полоса (просвечивает фон html).
+        Растягиваем html на полную высоту экрана. navigator.standalone есть
+        только в iOS, поэтому в Safari, на Android и десктопе это не работает.
+      */
+      (function () {
+        if (window.navigator.standalone !== true) return;
+        var root = document.documentElement;
+        function fit() {
+          var portrait = window.innerHeight >= window.innerWidth;
+          var full = portrait ? window.screen.height : window.screen.width;
+          if (window.innerHeight < full) {
+            root.style.height = full + 'px';
+            root.style.overflow = 'hidden'; // лишние пиксели не должны прокручиваться
+          } else {
+            root.style.height = '';
+            root.style.overflow = '';
+          }
+        }
+        fit();
+        window.addEventListener('resize', fit);
+        window.addEventListener('orientationchange', fit);
+      })();
+    </script>
     <!-- splash:start — блок генерирует scripts/generate-icons.js, не править руками -->
     <link rel="apple-touch-startup-image" href="/splash/iphone-1320x2868.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
     <link rel="apple-touch-startup-image" href="/splash/iphone-1260x2736.png" media="(device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
