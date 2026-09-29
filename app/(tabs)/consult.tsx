@@ -267,7 +267,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1, borderColor: C.border,
   },
-  searchInput: { flex: 1, fontSize: 14, color: C.text },
+  searchInput: { flex: 1, fontSize: 16, color: C.text },
   glossCard: { backgroundColor: C.white, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.border },
   glossTop: { gap: 3 },
   glossTerm: { fontSize: 15, fontWeight: '700', color: C.text },

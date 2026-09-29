@@ -187,7 +187,7 @@ export default function DentAIScreen() {
             return (
               <View key={i} style={s.userBubbleWrap}>
                 <View style={s.userBubble}>
-                  <Text style={s.userBubbleText}>{m.content}</Text>
+                  <Text selectable style={s.userBubbleText}>{m.content}</Text>
                 </View>
               </View>
             );
@@ -195,7 +195,7 @@ export default function DentAIScreen() {
           return (
             <View key={i} style={s.assistantBubbleWrap}>
               <View style={[s.assistantBubble, m.isError && s.assistantBubbleError]}>
-                <Text style={[s.assistantBubbleText, m.isError && s.assistantBubbleErrorText]}>
+                <Text selectable style={[s.assistantBubbleText, m.isError && s.assistantBubbleErrorText]}>
                   {m.content}
                 </Text>
 
@@ -226,7 +226,7 @@ export default function DentAIScreen() {
                                 {loadingSource === src.number ? (
                                   <ActivityIndicator size="small" color={C.primary} />
                                 ) : (
-                                  <Text style={s.sourceTextContent}>{sourceTexts[src.number]}</Text>
+                                  <Text selectable style={s.sourceTextContent}>{sourceTexts[src.number]}</Text>
                                 )}
                               </View>
                             )}
@@ -256,7 +256,7 @@ export default function DentAIScreen() {
           style={s.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Например: доза артикаина у ребёнка 8 лет"
+          placeholder="Например: доза артикаина детям"
           placeholderTextColor={C.muted}
           multiline
           editable={!loading}
@@ -389,7 +389,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: 16,
     color: C.text,
     maxHeight: 100,
     borderWidth: 1.5,

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!--
+      viewport-fit=cover — рисуем под вырезом («чёлкой»): отступы от него
+      считает react-native-safe-area-context через env(safe-area-inset-*),
+      см. hooks/useSafeLayout.ts. Масштабирование жестом не запрещаем
+      (доступность); автоувеличение при фокусе убрано шрифтом полей 16px.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>%WEB_TITLE%</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+    <!-- Поведение как у приложения, а не у сайта -->
+    <style id="denvise-app-shell">
+      html,
+      body {
+        /* Страница целиком не «пружинит» и не тянет pull-to-refresh */
+        overscroll-behavior: none;
+        background-color: #eef2f7; /* C.bg */
+        /* Не увеличивать шрифт при повороте экрана на iOS */
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+      body {
+        /* Текст интерфейса не выделяется долгим нажатием */
+        -webkit-user-select: none;
+        user-select: none;
+        /* Нет меню «Скопировать/Поделиться» при долгом нажатии на iOS */
+        -webkit-touch-callout: none;
+        /* Нет серой вспышки при касании — отклик рисуют сами кнопки */
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* В полях ввода выделение и меню нужны */
+      input,
+      textarea {
+        -webkit-user-select: text;
+        user-select: text;
+        -webkit-touch-callout: default;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      Для работы Denvise включите JavaScript.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

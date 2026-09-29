@@ -159,7 +159,7 @@ export default function PatientScreen() {
           <View key={i} style={[s.mw, m.role === 'user' ? s.mr : s.ml]}>
             <Text style={s.mn}>{m.role === 'user' ? '👨‍⚕️ Врач' : pat.avatar}</Text>
             <View style={[s.bub, m.role === 'user' ? s.bDoc : s.bPat]}>
-              <Text style={[s.bubT, m.role === 'user' && s.bubTDoc]}>{m.content}</Text>
+              <Text selectable style={[s.bubT, m.role === 'user' && s.bubTDoc]}>{m.content}</Text>
             </View>
           </View>
         ))}
@@ -214,7 +214,7 @@ const s = StyleSheet.create({
   qrb: { backgroundColor: C.light, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8 },
   qrT: { fontSize: 11, color: C.primary, fontWeight: '600' },
   inp: { flexDirection: 'row', padding: 12, gap: 8, backgroundColor: C.white, borderTopWidth: 1, borderTopColor: C.border },
-  ti: { flex: 1, backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 13, color: C.text, maxHeight: 80 },
+  ti: { flex: 1, backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 16, color: C.text, maxHeight: 80 },
   sb: { backgroundColor: C.primary, borderRadius: 22, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   sbT: { color: C.white, fontSize: 20, fontWeight: '700' },
   gradeCard: { backgroundColor: C.white, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 20, borderWidth: 2, shadowColor: '#000', shadowOpacity: 0.08, elevation: 3 },
