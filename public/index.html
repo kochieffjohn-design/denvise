@@ -35,24 +35,27 @@
         строка», и снизу остаётся пустая полоса (просвечивает фон html).
         Растягиваем html на полную высоту экрана. navigator.standalone есть
         только в iOS, поэтому в Safari, на Android и десктопе это не работает.
+
+        Растягиваем всегда, а не «если innerHeight меньше экрана»: при запуске
+        iOS может сначала сообщить полную высоту и укоротить страницу позже,
+        не присылая resize, — тогда проверка промахивалась и полоса оставалась.
+        Установленное приложение на iPhone всегда занимает весь экран, так что
+        при правильной высоте от iOS это ничего не меняет.
       */
       (function () {
         if (window.navigator.standalone !== true) return;
         var root = document.documentElement;
         function fit() {
-          var portrait = window.innerHeight >= window.innerWidth;
-          var full = portrait ? window.screen.height : window.screen.width;
-          if (window.innerHeight < full) {
-            root.style.height = full + 'px';
-            root.style.overflow = 'hidden'; // лишние пиксели не должны прокручиваться
-          } else {
-            root.style.height = '';
-            root.style.overflow = '';
-          }
+          // screen.width/height на iOS не меняются при повороте — берём по ориентации
+          var landscape = window.matchMedia('(orientation: landscape)').matches;
+          root.style.height = (landscape ? window.screen.width : window.screen.height) + 'px';
+          root.style.overflow = 'hidden'; // лишние пиксели не должны прокручиваться
         }
         fit();
         window.addEventListener('resize', fit);
         window.addEventListener('orientationchange', fit);
+        window.addEventListener('pageshow', fit);
+        document.addEventListener('visibilitychange', fit);
       })();
     </script>
     <!-- splash:start — блок генерирует scripts/generate-icons.js, не править руками -->
