@@ -156,7 +156,7 @@ app.post('/api/patient/chat', limiter, async (req, res) => {
     const result = await askWithSystemPrompt(
       `${PATIENT_ROLE_GUARD}\n\n${patient.systemPrompt}`,
       history,
-      { maxTokens: 900, temperature: 0.6 }
+      { endpoint: 'patient', maxTokens: 900, temperature: 0.6 }
     );
     res.json({ answer: result.answer, model: result.model, usage: result.usage });
   } catch (err) {

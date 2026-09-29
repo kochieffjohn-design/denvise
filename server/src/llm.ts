@@ -49,9 +49,28 @@ export interface ChatMessage {
 export interface AskResult {
   answer: string;
   finishReason: string | null;
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  usage: {
+    promptTokens: number;
+    // Часть promptTokens, прочитанная из кеша провайдера (дешевле обычных).
+    cachedTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    // Итоговая стоимость запроса в USD по данным OpenRouter; null, если
+    // OpenRouter её не прислал.
+    costUsd: number | null;
+  };
   model: string;
+  // id генерации в OpenRouter — по нему запрос можно найти в Activity.
+  generationId: string;
 }
+
+// OpenRouter всегда кладёт в usage поле cost (USD), но в типах openai-SDK
+// его нет — читаем через узкий тип вместо any.
+type OpenRouterUsage = { cost?: number };
+
+// Какой раздел приложения вызвал модель — нужно, чтобы в логах расхода
+// отделять ДентИИ от ИИ-Пациента.
+export type LlmEndpoint = 'dentai' | 'patient';
 
 /**
  * Универсальный вызов модели с произвольным system-промптом — используется
@@ -61,19 +80,20 @@ export interface AskResult {
 export async function askWithSystemPrompt(
   systemPrompt: string,
   history: ChatMessage[],
-  options?: { maxTokens?: number; temperature?: number }
+  options: { endpoint: LlmEndpoint; maxTokens?: number; temperature?: number }
 ): Promise<AskResult> {
   const lastMessage = history[history.length - 1];
   if (!lastMessage || lastMessage.role !== 'user') {
     throw new Error('Последнее сообщение в истории должно быть от пользователя (role: "user").');
   }
 
+  const startedAt = Date.now();
   const completion = await client.chat.completions.create({
     model: MODEL,
-    max_tokens: options?.maxTokens ?? 300,
+    max_tokens: options.maxTokens ?? 300,
     // Для роли пациента температура повыше дефолтной ДентИИ (0.2) — тут
     // нужна живая, не «роботизированная» речь, а не точность цитирования.
-    temperature: options?.temperature ?? 0.7,
+    temperature: options.temperature ?? 0.7,
     messages: [
       { role: 'system', content: systemPrompt },
       ...history.map((m) => ({ role: m.role, content: m.content }) as const),
@@ -81,16 +101,40 @@ export async function askWithSystemPrompt(
   });
 
   const choice = completion.choices[0];
-  return {
+  const usage = completion.usage;
+  const cost = (usage as OpenRouterUsage | undefined)?.cost;
+  const result: AskResult = {
     answer: choice?.message?.content ?? '',
     finishReason: choice?.finish_reason ?? null,
     usage: {
-      promptTokens: completion.usage?.prompt_tokens ?? 0,
-      completionTokens: completion.usage?.completion_tokens ?? 0,
-      totalTokens: completion.usage?.total_tokens ?? 0,
+      promptTokens: usage?.prompt_tokens ?? 0,
+      cachedTokens: usage?.prompt_tokens_details?.cached_tokens ?? 0,
+      completionTokens: usage?.completion_tokens ?? 0,
+      totalTokens: usage?.total_tokens ?? 0,
+      costUsd: typeof cost === 'number' ? cost : null,
     },
     model: completion.model,
+    generationId: completion.id,
   };
+
+  // Одна JSON-строка на каждый вызов модели — из них потом считаем реальную
+  // экономику (см. MIGRATION-WEB.md §8). Текст диалога и данные клиента сюда
+  // намеренно не пишем: шлюз не должен хранить ничего о пользователе.
+  console.log(JSON.stringify({
+    type: 'llm_usage',
+    ts: new Date().toISOString(),
+    endpoint: options.endpoint,
+    model: result.model,
+    generationId: result.generationId,
+    promptTokens: result.usage.promptTokens,
+    cachedTokens: result.usage.cachedTokens,
+    completionTokens: result.usage.completionTokens,
+    costUsd: result.usage.costUsd,
+    latencyMs: Date.now() - startedAt,
+    finishReason: result.finishReason,
+  }));
+
+  return result;
 }
 
 /**
@@ -107,5 +151,5 @@ export async function askWithSystemPrompt(
  * порядок — вернуться к этому месту и пересчитать экономику.
  */
 export async function askDentAI(history: ChatMessage[]): Promise<AskResult> {
-  return askWithSystemPrompt(systemPromptText, history, { maxTokens: MAX_TOKENS, temperature: 0.2 });
+  return askWithSystemPrompt(systemPromptText, history, { endpoint: 'dentai', maxTokens: MAX_TOKENS, temperature: 0.2 });
 }
