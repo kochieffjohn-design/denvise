@@ -56,6 +56,29 @@
         user-select: text;
         -webkit-touch-callout: default;
       }
+      /*
+        Десктоп и планшет: приложение — колонка шириной с телефон по центру
+        на фирменном фоне. Экраны меряют ширину контейнера, а не окна
+        (см. онбординг), поэтому внутри колонки всё выглядит как на телефоне.
+      */
+      @media (min-width: 520px) {
+        html,
+        body {
+          background-color: #141a30; /* C.navyDeep */
+          background-image:
+            radial-gradient(circle at 20% 15%, rgba(59, 130, 246, 0.28), transparent 45%),
+            radial-gradient(circle at 85% 90%, rgba(59, 130, 246, 0.18), transparent 40%),
+            linear-gradient(180deg, #141a30 0%, #1a2340 100%); /* C.navyDeep → C.dark */
+        }
+        #root {
+          width: 100%;
+          max-width: 480px;
+          margin: 0 auto;
+          background-color: #eef2f7; /* C.bg */
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 24px 80px rgba(0, 0, 0, 0.45);
+          overflow: hidden;
+        }
+      }
     </style>
   </head>
 

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
     Dimensions,
+    LayoutChangeEvent,
     ScrollView,
     StyleSheet,
     Text,
@@ -12,7 +13,6 @@ import {
 import { C } from '../constants/Colors';
 import { useHeaderTopPadding, useScreenBottomPadding } from '../hooks/useSafeLayout';
 
-const { width } = Dimensions.get('window');
 
 const SLIDES = [
   {
@@ -77,10 +77,20 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const [current, setCurrent] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  // Ширина слайда = ширина контейнера, а не окна: на десктопе приложение
+  // живёт в колонке ~480px посреди широкого окна (см. public/index.html).
+  const [pageWidth, setPageWidth] = useState(() => Dimensions.get('window').width);
+
+  const onPagerLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w === pageWidth) return;
+    setPageWidth(w);
+    scrollRef.current?.scrollTo({ x: current * w, animated: false });
+  };
 
   const goTo = (index: number) => {
     setCurrent(index);
-    scrollRef.current?.scrollTo({ x: index * width, animated: true });
+    scrollRef.current?.scrollTo({ x: index * pageWidth, animated: true });
   };
 
   const finish = async () => {
@@ -116,9 +126,10 @@ export default function OnboardingScreen() {
         scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
+        onLayout={onPagerLayout}
       >
         {SLIDES.map((sl, i) => (
-          <View key={sl.id} style={s.slide}>
+          <View key={sl.id} style={[s.slide, { width: pageWidth }]}>
 
             <View style={s.visualArea}>
               {i === 0 && (
@@ -242,7 +253,7 @@ const s = StyleSheet.create({
   },
   skipBtn: { paddingVertical: 6, paddingHorizontal: 12 },
   skipText: { color: 'rgba(255,255,255,0.35)', fontSize: 14, fontWeight: '500' },
-  slide: { width, flex: 1 },
+  slide: { flex: 1 },
   visualArea: {
     flex: 1,
     alignItems: 'center',
