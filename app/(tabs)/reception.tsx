@@ -13,7 +13,7 @@ const ICONS: Record<string, { lib: 'ion' | 'mci'; name: string; bg: string; colo
   'Лечение кариеса':          { lib: 'mci', name: 'tooth', bg: '#E6F1FB', color: '#185FA5', tag: 'Терапия' },
   'Лечение пульпита':         { lib: 'mci', name: 'needle', bg: '#EEEDFE', color: '#534AB7', tag: 'Терапия' },
   'Лечение периодонтита':     { lib: 'ion', name: 'cellular-outline', bg: '#EAF3DE', color: '#3B6D11', tag: 'Терапия' },
-  'Удаление зуба':            { lib: 'mci', name: 'scalpel', bg: '#FAECE7', color: '#993C1D', tag: 'Хирургия' },
+  'Удаление зуба':            { lib: 'mci', name: 'pliers', bg: '#FAECE7', color: '#993C1D', tag: 'Хирургия' },
   'Дентальная имплантация':   { lib: 'mci', name: 'screw-flat-top', bg: '#FCF0E8', color: '#7A3B10', tag: 'Хирургия' },
   'Синуслифтинг':             { lib: 'ion', name: 'medical-outline', bg: '#FFF0E6', color: '#854F0B', tag: 'Хирургия' },
   'Пластика мягких тканей (рецессия)': { lib: 'ion', name: 'fitness-outline', bg: '#F5EAF9', color: '#7B3FA0', tag: 'Хирургия' },

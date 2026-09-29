@@ -167,14 +167,7 @@ export default function ProfileScreen() {
               <Text style={s.infoLabel}>Версия</Text>
               <Text style={s.infoValue}>Denvise 4.0</Text>
             </View>
-            <View style={s.infoRow}>
-              <Text style={s.infoLabel}>База знаний</Text>
-              <Text style={s.infoValue}>Нац. руководства МЗ РФ</Text>
-            </View>
-            <View style={s.infoRow}>
-              <Text style={s.infoLabel}>Источники</Text>
-              <Text style={s.infoValue}>Боровский, Кулаков, Лебеденко</Text>
-            </View>
+            <Text style={s.infoLabel}>ДентИИ отвечает на основе учебных материалов Denvise.</Text>
           </View>
 
           <TouchableOpacity style={s.resetBtn} onPress={() => {
