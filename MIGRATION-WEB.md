@@ -195,7 +195,20 @@ OpenRouter (deepseek/deepseek-v4-flash)
 - [ ] Завести аккаунт в Yandex Cloud.
 - [ ] Подключить магазин в ЮKassa (после готовности документов и домена).
 - [ ] Зарегистрировать приложения в Яндекс ID и VK ID, создать бота для Telegram Login (Claude подскажет шаги).
-- [ ] Поставить месячный лимит расходов в OpenRouter.
+- [x] Поставить месячный лимит расходов в OpenRouter.
 - [ ] Вычитка контента вместе с врачом; юридические документы — юристу.
 - [ ] Собрать 10–15 бета-тестеров.
 - [ ] Пилот ДентИИ: 2 учебника в `C:\Projects\denvise-kb\books\`, карточки книг (`books.csv`), 40–50 тестовых вопросов (`questions.csv`).
+
+## 15. Тестовый веб-стенд (Railway)
+
+Адрес: https://denvise-web-production.up.railway.app — готовая сборка ветки `sdk-57-upgrade` для проверки на телефонах. Ссылка публичная: не раздавать широко, пока нет входа и тарифов (весь контент в бандле, запросы к ДентИИ стоят денег).
+
+Сервис `denvise-web` в том же проекте Railway, что и шлюз; `main` и шлюз не затрагивает. Config-as-code для новых сервисов Railway больше не включает (с 28.08.2026), поэтому всё задано в настройках сервиса:
+
+- Source → Branch: `sdk-57-upgrade`; Root Directory — пусто (корень репозитория).
+- Build Command: `npx expo export -p web`
+- Start Command: `npx --yes serve@14 --single dist --listen $PORT` (`--single` — любой путь отдаёт `index.html`, иначе прямые ссылки вроде `/dentai` дают 404).
+- Watch Paths: `/app/**`, `/assets/**`, `/components/**`, `/constants/**`, `/data/**`, `/hooks/**`, `/public/**`, `/.env`, `/app.json`, `/package.json`, `/package-lock.json`.
+- Без своих команд Railway запускает `npm start` = `expo start` (сервер разработки) — `npm start` не менять, это команда локальной разработки.
+- Адрес шлюза берётся из `.env` в репозитории (`EXPO_PUBLIC_DENTAI_API_URL`); `CORS_ORIGIN` шлюза сейчас `*`.
