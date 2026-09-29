@@ -7,9 +7,9 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TouchableOpacity,
     View,
 } from 'react-native';
+import { TouchableOpacity } from '../components/Touchable';
 import { C } from '../constants/Colors';
 import { useHeaderTopPadding, useScreenBottomPadding } from '../hooks/useSafeLayout';
 

@@ -3,11 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
       ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+      StyleSheet,
+      Text,
+      View,
 } from 'react-native';
+import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { EMERGENCIES, type Emergency } from '../../data/emergencyData';
