@@ -9,10 +9,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // «Воздух» между вырезом (или краем экрана) и содержимым шапки.
 const HEADER_GAP = 16;
-// Высота содержимого таб-бара (иконка + подпись) без системного отступа снизу.
-const TAB_BAR_CONTENT_HEIGHT = 56;
-// Минимальный отступ снизу у таб-бара на устройствах без полоски «домой».
-const TAB_BAR_MIN_BOTTOM = 8;
+// Высота иконки таб-бара вместе с подписью (см. TabIcon в app/(tabs)/_layout.tsx).
+export const TAB_ICON_HEIGHT = 44;
+// Одинаковый отступ сверху и снизу от иконок — они стоят по центру панели.
+// С полоской «домой» он больше, чтобы подписи не наезжали на неё.
+const TAB_BAR_GAP_HOME_INDICATOR = 18;
+const TAB_BAR_GAP = 10;
+// Верхняя граница панели (borderTopWidth в app/(tabs)/_layout.tsx).
+const TAB_BAR_BORDER = 1;
 
 /** paddingTop для тёмной шапки экрана. */
 export function useHeaderTopPadding(): number {
@@ -27,8 +31,8 @@ export function useScreenBottomPadding(min = 28): number {
   return Math.max(useSafeAreaInsets().bottom + 10, min);
 }
 
-/** Высота и нижний отступ таб-бара. */
-export function useTabBarMetrics(): { height: number; paddingBottom: number } {
-  const paddingBottom = Math.max(useSafeAreaInsets().bottom, TAB_BAR_MIN_BOTTOM);
-  return { height: TAB_BAR_CONTENT_HEIGHT + paddingBottom, paddingBottom };
+/** Высота и вертикальные отступы таб-бара: иконки по центру панели. */
+export function useTabBarMetrics(): { height: number; paddingTop: number; paddingBottom: number } {
+  const gap = useSafeAreaInsets().bottom > 0 ? TAB_BAR_GAP_HOME_INDICATOR : TAB_BAR_GAP;
+  return { height: TAB_ICON_HEIGHT + gap * 2 + TAB_BAR_BORDER, paddingTop: gap, paddingBottom: gap };
 }

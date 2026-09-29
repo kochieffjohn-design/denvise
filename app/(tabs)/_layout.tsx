@@ -2,7 +2,7 @@ import { C } from '@/constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import { useTabBarMetrics } from '@/hooks/useSafeLayout';
+import { TAB_ICON_HEIGHT, useTabBarMetrics } from '@/hooks/useSafeLayout';
 
 function TabIcon({ ionIcon, mciIcon, label, focused }: {
   ionIcon?: string; mciIcon?: string; label: string; focused: boolean;
@@ -33,6 +33,7 @@ export default function TabLayout() {
           borderTopColor: C.border,
           borderTopWidth: 1,
           height: tabBar.height,
+          paddingTop: tabBar.paddingTop,
           paddingBottom: tabBar.paddingBottom,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -3 },
@@ -41,6 +42,13 @@ export default function TabLayout() {
           elevation: 12,
         },
         tabBarShowLabel: false,
+        // Библиотека отводит под иконку 31×28 и прижимает её к верху кнопки;
+        // наша иконка с подписью выше — даём ей свою высоту и центрируем.
+        // Внутренний слой кнопки (BottomTabItem, стиль tabVerticalUiKit) имеет
+        // padding 5, до которого tabBarItemStyle не достаёт, — компенсируем
+        // его отрицательным полем у иконки, иначе она смещается вниз на 5pt.
+        tabBarItemStyle: { justifyContent: 'center', padding: 0 },
+        tabBarIconStyle: { width: 72, height: TAB_ICON_HEIGHT, marginVertical: -5 },
         animation: 'shift',
       }}
     >
@@ -60,7 +68,7 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'center', gap: 3, paddingTop: 6, width: 72 },
+  wrap: { alignItems: 'center', gap: 3, width: 72 },
   iconWrap: { width: 40, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
-  label: { fontSize: 10, color: '#9aa3b0', fontWeight: '500', letterSpacing: 0.2 },
+  label: { fontSize: 10, lineHeight: 13, color: '#9aa3b0', fontWeight: '500', letterSpacing: 0.2 },
 });
