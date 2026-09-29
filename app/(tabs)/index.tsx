@@ -3,8 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Animated, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { C, SPECIALTY } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { shadowCard } from '../../constants/shadows';
 import { getStats, type Stats } from '../../data/xpStorage';
 
@@ -169,6 +170,7 @@ function ModuleCard({ m, progress, onPress }: { m: typeof MODULES[0]; progress: 
 }
 
 export default function HomeScreen() {
+  const headerTop = useHeaderTopPadding();
   const router = useRouter();
   const [stats, setStats] = useState<Stats>({
     xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
@@ -197,7 +199,7 @@ export default function HomeScreen() {
         colors={[C.navyDeep, C.navyBase]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        style={s.header}
+        style={[s.header, { paddingTop: headerTop }]}
       >
         <View style={s.headerGlow} pointerEvents="none" />
         <View style={s.headerRow}>
@@ -238,7 +240,6 @@ export default function HomeScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 18,
     paddingHorizontal: 20,
     overflow: 'hidden',

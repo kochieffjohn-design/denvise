@@ -1,7 +1,8 @@
 import { C } from '@/constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { useTabBarMetrics } from '@/hooks/useSafeLayout';
 
 function TabIcon({ ionIcon, mciIcon, label, focused }: {
   ionIcon?: string; mciIcon?: string; label: string; focused: boolean;
@@ -22,6 +23,7 @@ function TabIcon({ ionIcon, mciIcon, label, focused }: {
 }
 
 export default function TabLayout() {
+  const tabBar = useTabBarMetrics();
   return (
     <Tabs
       screenOptions={{
@@ -30,8 +32,8 @@ export default function TabLayout() {
           backgroundColor: C.white,
           borderTopColor: C.border,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 84 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: tabBar.height,
+          paddingBottom: tabBar.paddingBottom,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: 0.06,

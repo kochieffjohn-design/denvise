@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DENTAI_API_URL } from '../../constants/config';
 
 type VerifiedSource = { number: number; source: string; title: string };
@@ -30,6 +31,7 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 export default function DentAIScreen() {
+  const headerTop = useHeaderTopPadding();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -138,7 +140,7 @@ export default function DentAIScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={80}
     >
-      <View style={s.header}>
+      <View style={[s.header, { paddingTop: headerTop }]}>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>🧠 ДентИИ</Text>
           <Text style={s.subtitle}>Только по базе знаний Denvise</Text>
@@ -275,7 +277,6 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
     backgroundColor: C.dark,
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',

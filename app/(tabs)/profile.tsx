@@ -1,8 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { getStats, resetStats, type Stats } from '../../data/xpStorage';
 
 const LEVELS = [
@@ -55,6 +56,7 @@ function Medallion({ level, size = 62, locked = false }: { level: typeof LEVELS[
 }
 
 export default function ProfileScreen() {
+  const headerTop = useHeaderTopPadding();
   const [tab, setTab] = useState<'profile' | 'levels'>('profile');
   const [stats, setStats] = useState<Stats>({
     xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
@@ -90,7 +92,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={s.header}>
+      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={[s.header, { paddingTop: headerTop }]}>
         <View style={s.headerGlow} pointerEvents="none" />
         <Text style={s.title}>Профиль</Text>
       </LinearGradient>
@@ -253,7 +255,6 @@ const medal = StyleSheet.create({
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 16,
     paddingHorizontal: 20,
     overflow: 'hidden',

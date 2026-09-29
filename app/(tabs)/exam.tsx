@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,6 +8,7 @@ import {
   View
 } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { addXP } from '../../data/xpStorage';
 
 // ─── ТИПЫ ───────────────────────────────────────────────────────────────────
@@ -543,6 +543,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 // ─── ЭКРАН ───────────────────────────────────────────────────────────────────
 export default function ExamScreen() {
+  const headerTop = useHeaderTopPadding();
   const [caseIdx, setCaseIdx] = useState(() => Math.floor(Math.random() * CASES.length));
   const [phase, setPhase] = useState<1 | 2 | 3 | 4>(1);
 
@@ -636,7 +637,7 @@ export default function ExamScreen() {
   // ─── ФИНАЛ ───────────────────────────────────────────────────────────────
   if (finished) return (
     <View style={s.container}>
-      <View style={s.hdr}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrT}>Результат</Text>
         <View style={[s.specBadge, { backgroundColor: c.specialtyBg }]}>
           <Text style={[s.specBadgeT, { color: c.specialtyColor }]}>{c.specialty}</Text>
@@ -706,7 +707,7 @@ export default function ExamScreen() {
 
   return (
     <View style={s.container}>
-      <View style={s.hdr}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrT}>Экзамен</Text>
         <View style={[s.specBadge, { backgroundColor: c.specialtyBg }]}>
           <Text style={[s.specBadgeT, { color: c.specialtyColor }]}>{c.specialty}</Text>
@@ -883,7 +884,6 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
     backgroundColor: C.dark,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
