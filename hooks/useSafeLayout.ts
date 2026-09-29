@@ -12,8 +12,9 @@ const HEADER_GAP = 16;
 // Высота иконки таб-бара вместе с подписью (см. TabIcon в app/(tabs)/_layout.tsx).
 export const TAB_ICON_HEIGHT = 44;
 // Одинаковый отступ сверху и снизу от иконок — они стоят по центру панели.
-// С полоской «домой» он больше, чтобы подписи не наезжали на неё.
-const TAB_BAR_GAP_HOME_INDICATOR = 18;
+// С полоской «домой» он больше, чтобы подписи не наезжали на неё: полоска
+// занимает нижние ~13pt экрана, меньше 14 ставить не стоит.
+const TAB_BAR_GAP_HOME_INDICATOR = 14;
 const TAB_BAR_GAP = 10;
 // Верхняя граница панели (borderTopWidth в app/(tabs)/_layout.tsx).
 const TAB_BAR_BORDER = 1;
