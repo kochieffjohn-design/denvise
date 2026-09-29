@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DIAG_CASES } from '../../data/clinicalData';
 import { addXP, getDiagDone, markDiagDone } from '../../data/xpStorage';
 
@@ -179,6 +180,7 @@ const METHOD_RESULTS: Record<string, Record<string, string>> = {
 };
 
 export default function DiagScreen() {
+  const headerTop = useHeaderTopPadding();
   const [lvl, setLvl] = useState<Level>(1);
   const [phase, setPhase] = useState<Phase>('list');
   const [active, setActive] = useState<typeof DIAG_CASES[0] | null>(null);
@@ -252,7 +254,7 @@ export default function DiagScreen() {
     const missed = required.filter(m => !selectedMethods.includes(m));
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← К списку</Text></TouchableOpacity>
           <Text style={s.title}>Разбор кейса</Text>
         </View>
@@ -318,7 +320,7 @@ export default function DiagScreen() {
     const correct = active.questions[0];
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← Выход</Text></TouchableOpacity>
           <Text style={s.title}>Поставьте диагноз</Text>
         </View>
@@ -382,7 +384,7 @@ export default function DiagScreen() {
     const required = REQUIRED_METHODS[active.id] || [];
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← Выход</Text></TouchableOpacity>
           <Text style={s.title}>Обследование</Text>
         </View>
@@ -449,7 +451,7 @@ export default function DiagScreen() {
   if (phase === 'complaint' && active) {
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← Назад</Text></TouchableOpacity>
           <Text style={s.title}>Первичный осмотр</Text>
         </View>
@@ -485,7 +487,7 @@ export default function DiagScreen() {
   // ── СПИСОК КЕЙСОВ ──
   return (
     <View style={s.container}>
-      <View style={s.hdr}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.title}>Диагностический тренажёр</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
@@ -544,7 +546,6 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
     backgroundColor: C.dark,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',

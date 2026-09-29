@@ -19,6 +19,14 @@ export function useHeaderTopPadding(): number {
   return useSafeAreaInsets().top + HEADER_GAP;
 }
 
+/**
+ * paddingBottom для нижнего блока полноэкранного экрана без таб-бара
+ * (онбординг): над полоской «домой» + 10px, но не меньше `min`.
+ */
+export function useScreenBottomPadding(min = 28): number {
+  return Math.max(useSafeAreaInsets().bottom + 10, min);
+}
+
 /** Высота и нижний отступ таб-бара. */
 export function useTabBarMetrics(): { height: number; paddingBottom: number } {
   const paddingBottom = Math.max(useSafeAreaInsets().bottom, TAB_BAR_MIN_BOTTOM);

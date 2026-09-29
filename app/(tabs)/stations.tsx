@@ -2,7 +2,6 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { STATIONS, type Station } from '../../data/clinicalData';
 
 // ─── КОНСТРУКТОР ────────────────────────────────────────────
@@ -165,6 +165,7 @@ function StepBuilder({ station }: { station: Station }) {
 
 // ─── ДЕТАЛЬНЫЙ ЭКРАН СТАНЦИИ ────────────────────────────────
 function StationDetail({ station, onBack }: { station: Station; onBack: () => void }) {
+  const headerTop = useHeaderTopPadding();
   const [activeTab, setActiveTab] = useState<'algorithm' | 'builder' | 'mistakes' | 'phrases'>('algorithm');
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
@@ -182,7 +183,7 @@ function StationDetail({ station, onBack }: { station: Station; onBack: () => vo
         locations={[0, 0.55, 1.3]}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={s.hdr}
+        style={[s.hdr, { paddingTop: headerTop }]}
       >
         <TouchableOpacity onPress={onBack} style={s.backBtn}>
           <Ionicons name="chevron-back" size={18} color="#fff" />
@@ -287,6 +288,7 @@ function StationDetail({ station, onBack }: { station: Station; onBack: () => vo
 
 // ─── ГЛАВНЫЙ СПИСОК ─────────────────────────────────────────
 export default function StationsScreen() {
+  const headerTop = useHeaderTopPadding();
   const [active, setActive] = useState<Station | null>(null);
 
   if (active) {
@@ -295,7 +297,7 @@ export default function StationsScreen() {
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={s.hdr}>
+      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={[s.hdr, { paddingTop: headerTop }]}>
         <View style={{ flex: 1 }}>
           <Text style={s.hdrTitle}>Станции аккредитации</Text>
           <Text style={s.hdrSub}>ОСКЭ · Первичная аккредитация · Стоматология</Text>
@@ -349,7 +351,6 @@ export default function StationsScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 14,
     paddingHorizontal: 18,
     flexDirection: 'row',

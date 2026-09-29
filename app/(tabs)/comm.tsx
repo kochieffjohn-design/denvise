@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import {
   COMM_SCENARIOS,
   FORBIDDEN_WORDS,
@@ -42,6 +42,7 @@ function PatientAvatar({ type }: { type: string }) {
 }
 
 export default function CommScreen() {
+  const headerTop = useHeaderTopPadding();
   const [active, setActive] = useState<Scenario | null>(null);
   const [stageIdx, setStageIdx] = useState(0);
   const [tab, setTab] = useState<'patients' | 'forbidden' | 'golden'>('patients');
@@ -107,7 +108,7 @@ export default function CommScreen() {
     const allCorrect = correctCount === total;
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <Text style={s.hdrTitle}>Приём завершён</Text>
         </View>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
@@ -137,7 +138,7 @@ export default function CommScreen() {
 
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.backBtn}>
             <Ionicons name="chevron-back" size={18} color={C.white} />
             <Text style={s.backT}>Назад</Text>
@@ -283,7 +284,7 @@ export default function CommScreen() {
   // ── СПИСОК ──
   return (
     <View style={s.container}>
-      <View style={s.hdr}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrTitle}>Коммуникация</Text>
       </View>
 
@@ -368,7 +369,6 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
     backgroundColor: C.dark,
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 14,
     paddingHorizontal: 18,
     flexDirection: 'row',

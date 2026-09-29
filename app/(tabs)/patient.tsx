@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DENTAI_API_URL } from '../../constants/config';
 import { PATIENTS } from '../../data/clinicalData';
 import { addXP, type Stats } from '../../data/xpStorage';
@@ -15,6 +16,7 @@ function fbStyle(note: string) {
 }
 
 export default function PatientScreen() {
+  const headerTop = useHeaderTopPadding();
   const [pat, setPat] = useState<typeof PATIENTS[0] | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -70,7 +72,7 @@ export default function PatientScreen() {
 
   if (!pat) return (
     <View style={s.container}>
-      <View style={s.hdr}><Text style={s.title}>🤖 ИИ-Пациент</Text><Text style={s.sub}>Выберите психотип</Text></View>
+      <View style={[s.hdr, { paddingTop: headerTop }]}><Text style={s.title}>🤖 ИИ-Пациент</Text><Text style={s.sub}>Выберите психотип</Text></View>
       <ScrollView contentContainerStyle={s.grid}>
         {PATIENTS.map(p => (
           <TouchableOpacity key={p.id} style={s.pc} onPress={() => select(p)} activeOpacity={0.7}>
@@ -98,7 +100,7 @@ export default function PatientScreen() {
 
     return (
       <View style={s.container}>
-        <View style={[s.hdr, { backgroundColor: grade.color }]}>
+        <View style={[s.hdr, { paddingTop: headerTop, backgroundColor: grade.color }]}>
           <Text style={s.title}>Приём завершён</Text>
           <Text style={s.sub}>{pat.avatar} {pat.name}</Text>
         </View>
@@ -140,7 +142,7 @@ export default function PatientScreen() {
 
   return (
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={80}>
-      <View style={s.hdr}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
         <TouchableOpacity onPress={() => setPat(null)} style={s.back}><Text style={s.backT}>← Назад</Text></TouchableOpacity>
         <Text style={s.title}>{pat.avatar} {pat.name}</Text>
       </View>
@@ -179,7 +181,7 @@ export default function PatientScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
-  hdr: { backgroundColor: C.dark, paddingTop: Platform.OS === 'ios' ? 50 : 40, paddingBottom: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  hdr: { backgroundColor: C.dark, paddingBottom: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
   title: { color: C.white, fontSize: 15, fontWeight: '700', flex: 1 },
   sub: { color: 'rgba(255,255,255,0.65)', fontSize: 12 },
   back: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },

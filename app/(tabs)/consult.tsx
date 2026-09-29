@@ -1,10 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { CONSULT_SECTIONS, GLOSSARY, type Script, type Section } from '../../data/clinicalData';
 
 export default function ConsultScreen() {
+  const headerTop = useHeaderTopPadding();
   const [tab, setTab] = useState<'scripts' | 'glossary'>('scripts');
   const [activeSection, setActiveSection] = useState<Section | null>(null);
   const [activeScript, setActiveScript] = useState<Script | null>(null);
@@ -21,7 +23,7 @@ export default function ConsultScreen() {
     const sec = CONSULT_SECTIONS.find(s => s.scripts.find(sc => sc.id === activeScript.id));
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={() => setActiveScript(null)} style={s.backBtn}>
             <Ionicons name="chevron-back" size={18} color={C.white} />
             <Text style={s.backT}>Назад</Text>
@@ -100,7 +102,7 @@ export default function ConsultScreen() {
   if (activeSection) {
     return (
       <View style={s.container}>
-        <View style={[s.hdr, { backgroundColor: activeSection.color }]}>
+        <View style={[s.hdr, { paddingTop: headerTop, backgroundColor: activeSection.color }]}>
           <TouchableOpacity onPress={() => setActiveSection(null)} style={s.backBtn}>
             <Ionicons name="chevron-back" size={18} color={C.white} />
             <Text style={s.backT}>Назад</Text>
@@ -128,7 +130,7 @@ export default function ConsultScreen() {
 
   return (
     <View style={s.container}>
-      <View style={s.hdr}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrTitle}>Консультации</Text>
       </View>
 
@@ -206,7 +208,6 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
     backgroundColor: C.dark,
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 14,
     paddingHorizontal: 18,
     flexDirection: 'row',

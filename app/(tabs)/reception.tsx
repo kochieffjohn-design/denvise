@@ -1,7 +1,8 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { PROCEDURES } from '../../data/clinicalData';
 
 type Proc = typeof PROCEDURES[0];
@@ -48,6 +49,7 @@ function ProcIcon({ name }: { name: string }) {
 }
 
 export default function ReceptionScreen() {
+  const headerTop = useHeaderTopPadding();
   const [activeTag, setActiveTag] = useState('Все');
   const [active, setActive] = useState<Proc | null>(null);
   const [step, setStep] = useState(0);
@@ -62,7 +64,7 @@ export default function ReceptionScreen() {
     const ic = ICONS[active.name];
     return (
       <View style={s.container}>
-        <View style={s.hdr}>
+        <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={() => { setActive(null); setStep(0); setTab('steps'); }} style={s.backBtn}>
             <Ionicons name="chevron-back" size={18} color={C.white} />
             <Text style={s.backT}>Назад</Text>
@@ -141,7 +143,7 @@ export default function ReceptionScreen() {
 
   return (
     <View style={s.container}>
-      <View style={s.hdr}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrTitle}>Приём у доктора</Text>
         <Text style={s.hdrSub}>{PROCEDURES.length} протоколов</Text>
       </View>
@@ -187,7 +189,6 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
     backgroundColor: C.dark,
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 14,
     paddingHorizontal: 18,
     flexDirection: 'row',

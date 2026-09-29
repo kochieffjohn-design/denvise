@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
     Dimensions,
-    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -11,6 +10,7 @@ import {
     View,
 } from 'react-native';
 import { C } from '../constants/Colors';
+import { useHeaderTopPadding, useScreenBottomPadding } from '../hooks/useSafeLayout';
 
 const { width } = Dimensions.get('window');
 
@@ -72,6 +72,8 @@ const SLIDES = [
 ];
 
 export default function OnboardingScreen() {
+  const headerTop = useHeaderTopPadding();
+  const bottomPad = useScreenBottomPadding();
   const router = useRouter();
   const [current, setCurrent] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
@@ -101,7 +103,7 @@ export default function OnboardingScreen() {
   return (
     <View style={s.container}>
 
-      <View style={s.topBar}>
+      <View style={[s.topBar, { paddingTop: headerTop }]}>
         <TouchableOpacity onPress={skip} style={s.skipBtn}>
           <Text style={s.skipText}>Пропустить</Text>
         </TouchableOpacity>
@@ -208,7 +210,7 @@ export default function OnboardingScreen() {
         ))}
       </ScrollView>
 
-      <View style={s.bottom}>
+      <View style={[s.bottom, { paddingBottom: bottomPad }]}>
         <View style={s.dots}>
           {SLIDES.map((_, i) => (
             <TouchableOpacity key={i} onPress={() => goTo(i)}>
@@ -234,7 +236,6 @@ export default function OnboardingScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.dark },
   topBar: {
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingHorizontal: 24,
     paddingBottom: 8,
     alignItems: 'flex-end',
@@ -340,7 +341,6 @@ const s = StyleSheet.create({
   // Bottom
   bottom: {
     paddingHorizontal: 28,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
     paddingTop: 16,
     flexDirection: 'row',
     alignItems: 'center',

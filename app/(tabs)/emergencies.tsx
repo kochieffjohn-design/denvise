@@ -2,14 +2,14 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
-    Platform,
-    ScrollView,
+      ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { C } from '../../constants/Colors';
+import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { EMERGENCIES, type Emergency } from '../../data/emergencyData';
 
 // ─── КОНСТРУКТОР ────────────────────────────────────────────
@@ -126,6 +126,7 @@ function StepBuilder({ emergency }: { emergency: Emergency }) {
 
 // ─── ДЕТАЛЬНЫЙ ЭКРАН ────────────────────────────────────────
 function EmergencyDetail({ item, onBack }: { item: Emergency; onBack: () => void }) {
+  const headerTop = useHeaderTopPadding();
   const [activeTab, setActiveTab] = useState<'algorithm' | 'builder' | 'mistakes' | 'meds'>('algorithm');
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
@@ -138,7 +139,7 @@ function EmergencyDetail({ item, onBack }: { item: Emergency; onBack: () => void
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={s.hdr}>
+      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={[s.hdr, { paddingTop: headerTop }]}>
         <TouchableOpacity onPress={onBack} style={s.backBtn}>
           <Ionicons name="chevron-back" size={18} color="#fff" />
           <Text style={s.backT}>Назад</Text>
@@ -234,13 +235,14 @@ function EmergencyDetail({ item, onBack }: { item: Emergency; onBack: () => void
 
 // ─── ГЛАВНЫЙ СПИСОК ─────────────────────────────────────────
 export default function EmergenciesScreen() {
+  const headerTop = useHeaderTopPadding();
   const [active, setActive] = useState<Emergency | null>(null);
 
   if (active) return <EmergencyDetail item={active} onBack={() => setActive(null)} />;
 
   return (
     <View style={s.container}>
-      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={s.hdr}>
+      <LinearGradient colors={[C.navyDeep, C.navyBase]} style={[s.hdr, { paddingTop: headerTop }]}>
         <View style={s.headerGlow} pointerEvents="none" />
         <View style={{ flex: 1 }}>
           <Text style={s.hdrTitle}>Неотложные состояния</Text>
@@ -285,7 +287,6 @@ export default function EmergenciesScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
-    paddingTop: Platform.OS === 'ios' ? 54 : 44,
     paddingBottom: 14, paddingHorizontal: 18,
     flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden',
   },
