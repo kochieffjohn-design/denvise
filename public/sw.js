@@ -12,15 +12,18 @@
  * запуске онлайн, а не «застревает» в кеше. Файлы в /_expo/static/ и /assets/
  * имеют хеш в имени, их безопасно отдавать из кеша сразу.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `denvise-${VERSION}`;
 const SHELL_URL = '/';
+// Нужны для запуска установленного приложения; имена без хеша.
+const APP_FILES = ['/manifest.webmanifest', '/favicon.png', '/apple-touch-icon.png', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE);
       await cacheShell(cache);
+      await cache.addAll(APP_FILES);
       await self.skipWaiting();
     })()
   );
@@ -32,6 +35,34 @@ self.addEventListener('activate', (event) => {
       const keys = await caches.keys();
       await Promise.all(keys.filter((k) => k.startsWith('denvise-') && k !== CACHE).map((k) => caches.delete(k)));
       await self.clients.claim();
+    })()
+  );
+});
+
+/*
+ * Файлы, которые страница успела загрузить до того, как service worker начал
+ * перехватывать запросы (при самом первом запуске), — прежде всего шрифты
+ * иконок. Без них офлайн-запуск падал: страница присылает их список сама
+ * (см. регистрацию в index.html).
+ */
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || data.type !== 'cache-urls' || !Array.isArray(data.urls)) return;
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE);
+      for (const u of data.urls) {
+        const url = new URL(u, self.location.origin);
+        if (url.origin !== self.location.origin) continue;
+        if (!url.pathname.startsWith('/_expo/static/') && !url.pathname.startsWith('/assets/')) continue;
+        if (await cache.match(url.href)) continue;
+        try {
+          const res = await fetch(url.href);
+          if (res.ok) await cache.put(url.href, res);
+        } catch {
+          // нет сети — докачаем при следующем запуске
+        }
+      }
     })()
   );
 });

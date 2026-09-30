@@ -159,6 +159,17 @@
         window.addEventListener('load', function () {
           if (!document.querySelector('script[src^="/_expo/static/"]')) return;
           navigator.serviceWorker.register('/sw.js').catch(function () {});
+          // Передаём service worker всё, что уже загружено (шрифты иконок
+          // грузятся раньше, чем он начинает перехватывать запросы), и ещё раз
+          // чуть позже — для того, что догрузилось после первого экрана.
+          function sendLoaded() {
+            navigator.serviceWorker.ready.then(function (reg) {
+              var urls = performance.getEntriesByType('resource').map(function (e) { return e.name; });
+              if (reg.active) reg.active.postMessage({ type: 'cache-urls', urls: urls });
+            });
+          }
+          sendLoaded();
+          setTimeout(sendLoaded, 5000);
         });
       }
     </script>
