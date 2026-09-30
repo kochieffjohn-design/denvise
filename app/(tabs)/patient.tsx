@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { TypingDots } from '../../components/Skeleton';
 import { TouchableOpacity } from '../../components/Touchable';
 import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
@@ -199,7 +200,12 @@ export default function PatientScreen() {
             </View>
           </View>
         ))}
-        {loading && <View style={s.ml}><View style={s.bPat}><ActivityIndicator size="small" color={C.muted} /></View></View>}
+        {loading && (
+          <View style={[s.mw, s.ml]}>
+            <Text style={s.mn}>{pat.avatar}</Text>
+            <View style={[s.bub, s.bPat]}><TypingDots /></View>
+          </View>
+        )}
       </ScrollView>
       {fb ? <View style={s.fb}><Text style={s.fbT}>{fb}</Text></View> : null}
       <View style={s.qr}>

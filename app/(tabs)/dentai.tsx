@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SkeletonLines } from '../../components/Skeleton';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
 import { useOnline } from '../../hooks/useOnline';
@@ -230,7 +230,7 @@ export default function DentAIScreen() {
                             {isOpen && (
                               <View style={s.sourceText}>
                                 {loadingSource === src.number ? (
-                                  <ActivityIndicator size="small" color={C.primary} />
+                                  <SkeletonLines widths={['100%', '94%', '60%']} />
                                 ) : (
                                   <Text selectable style={s.sourceTextContent}>{sourceTexts[src.number]}</Text>
                                 )}
@@ -250,8 +250,8 @@ export default function DentAIScreen() {
         {loading && (
           <View style={s.assistantBubbleWrap}>
             <View style={[s.assistantBubble, s.loadingBubble]}>
-              <ActivityIndicator size="small" color={C.primary} />
               <Text style={s.loadingText}>Ищу в базе Denvise…</Text>
+              <SkeletonLines />
             </View>
           </View>
         )}
@@ -381,7 +381,8 @@ const s = StyleSheet.create({
   },
   sourceTextContent: { color: C.text2, fontSize: 12, lineHeight: 18 },
 
-  loadingBubble: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  // Ширина как у типичного ответа, чтобы строки-заглушки было где показать
+  loadingBubble: { width: '85%', gap: 10 },
   loadingText: { color: C.muted, fontSize: 13 },
 
   inputBar: {
