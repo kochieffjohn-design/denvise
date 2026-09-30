@@ -117,6 +117,33 @@
         user-select: text;
         -webkit-touch-callout: default;
       }
+      /* Плашка «Доступна новая версия» (показывает скрипт внизу страницы) */
+      #update-banner {
+        position: fixed;
+        z-index: 1000;
+        top: calc(env(safe-area-inset-top, 0px) + 10px);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 8px 8px 16px;
+        border-radius: 14px;
+        background: #fff;
+        color: #1a2340;
+        font: 600 14px -apple-system, system-ui, 'Segoe UI', sans-serif;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        white-space: nowrap;
+      }
+      #update-banner button {
+        border: 0;
+        border-radius: 10px;
+        padding: 8px 14px;
+        background: #3b82f6;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
       /*
         Десктоп и планшет: приложение — колонка шириной с телефон по центру
         на фирменном фоне. Экраны меряют ширину контейнера, а не окна
@@ -170,7 +197,36 @@
           }
           sendLoaded();
           setTimeout(sendLoaded, 5000);
+
+          /*
+            Обновления. Без сети (или при медленной сети) приложение открывается
+            из кеша, а новая версия докачивается в фоне; iOS к тому же часто не
+            перезапускает PWA, а разворачивает из памяти. Поэтому: при возврате
+            в приложение просим service worker проверить обновление, а когда он
+            скачал новую версию — показываем плашку «Обновить».
+          */
+          var ownBundle = (document.querySelector('script[src^="/_expo/static/js/"]') || {}).getAttribute
+            ? document.querySelector('script[src^="/_expo/static/js/"]').getAttribute('src') : null;
+          navigator.serviceWorker.addEventListener('message', function (e) {
+            if (e.data && e.data.type === 'update-ready' && e.data.bundle !== ownBundle) showUpdateBanner();
+          });
+          document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState !== 'visible') return;
+            navigator.serviceWorker.ready.then(function (reg) {
+              reg.update().catch(function () {});
+              if (reg.active) reg.active.postMessage({ type: 'check-update' });
+            });
+          });
         });
+      }
+
+      function showUpdateBanner() {
+        if (document.getElementById('update-banner')) return;
+        var bar = document.createElement('div');
+        bar.id = 'update-banner';
+        bar.innerHTML = '<span>Доступна новая версия</span><button type="button">Обновить</button>';
+        bar.querySelector('button').addEventListener('click', function () { window.location.reload(); });
+        document.body.appendChild(bar);
       }
     </script>
   </body>
