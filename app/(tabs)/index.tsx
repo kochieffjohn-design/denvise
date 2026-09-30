@@ -8,17 +8,23 @@ import { TouchableOpacity } from '../../components/Touchable';
 import { C, SPECIALTY } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { shadowCard } from '../../constants/shadows';
+import { COMM_SCENARIOS, CONSULT_SECTIONS, DIAG_CASES, EMERGENCIES, EXAM_CASES, PATIENTS, PROCEDURE_SPECIALTIES, PROCEDURES, STATIONS } from '../../data/clinicalData';
 import { getStats, type Stats } from '../../data/xpStorage';
+import {
+  CASE_FORMS, CONDITION_FORMS, DIRECTION_FORMS, plural, PROTOCOL_FORMS, PSYCHOTYPE_FORMS, SCENARIO_FORMS, SCRIPT_FORMS, STATION_FORMS,
+} from '../../lib/plural';
 
-const TOTAL_DIAG = 17;
-const TOTAL_COMM = 8;
+// Счётчики — из данных, чтобы не расходились с контентом
+const TOTAL_DIAG = DIAG_CASES.length;
+const TOTAL_COMM = COMM_SCENARIOS.length;
+const TOTAL_SCRIPTS = CONSULT_SECTIONS.reduce((n, sec) => n + sec.scripts.length, 0);
 
 const MODULES = [
   {
     id: 'patient',
     title: 'ИИ-Пациент',
-    desc: 'Живой диалог с 6 психотипами',
-    tag: '6 психотипов',
+    desc: `Живой диалог с ${plural(PATIENTS.length, ['психотипом', 'психотипами', 'психотипами'])}`,
+    tag: plural(PATIENTS.length, PSYCHOTYPE_FORMS),
     ionIcon: 'chatbubble-ellipses-outline',
     color: SPECIALTY.emergency.solid,
     bg: SPECIALTY.emergency.tint,
@@ -28,7 +34,7 @@ const MODULES = [
     id: 'consult',
     title: 'Консультации',
     desc: 'Скрипты, золотые и запретные слова',
-    tag: '19 скриптов',
+    tag: plural(TOTAL_SCRIPTS, SCRIPT_FORMS),
     ionIcon: 'book-outline',
     color: SPECIALTY.prosthetics.solid,
     bg: SPECIALTY.prosthetics.tint,
@@ -37,8 +43,8 @@ const MODULES = [
   {
     id: 'reception',
     title: 'Приём',
-    desc: '4 специальности',
-    tag: '15 протоколов',
+    desc: plural(PROCEDURE_SPECIALTIES.length, DIRECTION_FORMS),
+    tag: plural(PROCEDURES.length, PROTOCOL_FORMS),
     mciIcon: 'tooth-outline',
     color: SPECIALTY.therapy.solid,
     bg: SPECIALTY.therapy.tint,
@@ -48,7 +54,7 @@ const MODULES = [
     id: 'diag',
     title: 'Диагностика',
     desc: 'Рентген · ЭОД · кейсы',
-    tag: `${TOTAL_DIAG} кейсов`,
+    tag: plural(TOTAL_DIAG, CASE_FORMS),
     ionIcon: 'search-outline',
     color: SPECIALTY.prosthetics.solid,
     bg: SPECIALTY.prosthetics.tint,
@@ -60,8 +66,8 @@ const MODULES = [
   {
     id: 'comm',
     title: 'Коммуникация',
-    desc: '8 психотипов пациентов',
-    tag: `${TOTAL_COMM} сценариев`,
+    desc: `${plural(TOTAL_COMM, PSYCHOTYPE_FORMS)} пациентов`,
+    tag: plural(TOTAL_COMM, SCENARIO_FORMS),
     ionIcon: 'people-outline',
     color: SPECIALTY.periodontology.solid,
     bg: SPECIALTY.periodontology.tint,
@@ -74,7 +80,7 @@ const MODULES = [
     id: 'exam',
     title: 'Экзамен',
     desc: 'Симулятор приёма · 4 этапа',
-    tag: '12 кейсов',
+    tag: plural(EXAM_CASES.length, CASE_FORMS),
     ionIcon: 'school-outline',
     color: SPECIALTY.orthodontics.solid,
     bg: SPECIALTY.orthodontics.tint,
@@ -84,7 +90,7 @@ const MODULES = [
     id: 'stations',
     title: 'Станции ОСКЭ',
     desc: 'Алгоритмы аккредитации',
-    tag: '6 станций',
+    tag: plural(STATIONS.length, STATION_FORMS),
     ionIcon: 'medal-outline',
     color: SPECIALTY.emergency.solid,
     bg: SPECIALTY.emergency.tint,
@@ -94,7 +100,7 @@ const MODULES = [
     id: 'emergencies',
     title: 'Неотложка',
     desc: 'Алгоритмы · Препараты · Ошибки',
-    tag: '8 состояний',
+    tag: plural(EMERGENCIES.length, CONDITION_FORMS),
     ionIcon: 'medkit-outline',
     color: '#B91C1C',
     bg: '#FEF2F2',

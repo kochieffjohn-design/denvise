@@ -5,7 +5,7 @@ import { TouchableOpacity } from '../../components/Touchable';
 import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
-import { PROCEDURES } from '../../data/clinicalData';
+import { PROCEDURE_SPECIALTIES, PROCEDURES } from '../../data/clinicalData';
 
 type Proc = typeof PROCEDURES[0];
 
@@ -31,7 +31,7 @@ const ICONS: Record<string, { lib: 'ion' | 'mci'; name: string; bg: string; colo
   'Ретейнеры':                { lib: 'ion', name: 'lock-closed-outline', bg: '#E8EAF6', color: '#283593', tag: 'Ортодонтия' },
 };
 
-const TAGS = ['Все', 'Гигиена', 'Эстетика', 'Терапия', 'Хирургия', 'Ортопедия', 'Ортодонтия'];
+const TAGS = ['Все', ...PROCEDURE_SPECIALTIES];
 
 const TAG_COLORS: Record<string, string> = {
   'Гигиена': '#0F6E56', 'Эстетика': '#993556', 'Терапия': '#185FA5',
