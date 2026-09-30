@@ -2,12 +2,19 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
+import { useOnline } from '../../hooks/useOnline';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DENTAI_API_URL } from '../../constants/config';
+import { errorText, postJson } from '../../lib/api';
 import { PATIENTS } from '../../data/clinicalData';
 import { addXP, type Stats } from '../../data/xpStorage';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+// isError — служебная плашка об ошибке, а не реплика пациента: модели не отправляется.
+type Msg = { role: 'user' | 'assistant'; content: string; isError?: boolean };
+
+const CHAT_TIMEOUT_MS = 45000;
+
+const forModel = (list: Msg[]) => list.filter((m) => !m.isError).map((m) => ({ role: m.role, content: m.content }));
 
 function fbStyle(note: string) {
   if (note.startsWith('✅')) return { bg: C.successBg, border: '#86efac', text: '#166534' };
@@ -18,6 +25,7 @@ function fbStyle(note: string) {
 
 export default function PatientScreen() {
   const headerTop = useHeaderTopPadding();
+  const online = useOnline();
   const [pat, setPat] = useState<typeof PATIENTS[0] | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -43,8 +51,8 @@ export default function PatientScreen() {
   const send = async () => {
     if (!input.trim() || !pat || loading) return;
     const txt = input.trim(); setInput('');
-    const next: Msg[] = [...msgs, { role: 'user', content: txt }];
-    setMsgs(next); setLoading(true);
+    const next: Msg[] = [...msgs.filter((m) => !m.isError), { role: 'user', content: txt }];
+    setMsgs(next);
     const l = txt.toLowerCase();
     let note = '';
     if (l.includes('понима') || l.includes('слышу')) note = '✅ Эмпатия установлена — пациент чувствует, что его слышат.';
@@ -55,20 +63,30 @@ export default function PatientScreen() {
     else note = '💡 Используйте эмпатию, конкретику и стоп-сигнал.';
     setFb(note);
     setFbLog(prevLog => (prevLog.includes(note) ? prevLog : [...prevLog, note]));
+    ask(next);
+  };
+
+  const ask = async (history: Msg[]) => {
+    if (!pat) return;
+    setLoading(true);
     try {
-      const r = await fetch(`${DENTAI_API_URL}/api/patient/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId: pat.id, messages: next }),
-      });
-      const d = await r.json();
-      if (!r.ok) {
-        setMsgs([...next, { role: 'assistant', content: d?.error || '(ошибка сервера)' }]);
-      } else {
-        setMsgs([...next, { role: 'assistant', content: d.answer || '...' }]);
-      }
-    } catch { setMsgs([...next, { role: 'assistant', content: '(нет связи)' }]); }
-    finally { setLoading(false); setTimeout(() => ref.current?.scrollToEnd({ animated: true }), 100); }
+      const d = await postJson<{ answer?: string }>(`${DENTAI_API_URL}/api/patient/chat`, { patientId: pat.id, messages: forModel(history) }, CHAT_TIMEOUT_MS);
+      setMsgs([...history, { role: 'assistant', content: d.answer || '...' }]);
+    } catch (e) {
+      setMsgs([...history, { role: 'assistant', isError: true, content: errorText(e, 'ИИ-Пациент') }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => ref.current?.scrollToEnd({ animated: true }), 100);
+    }
+  };
+
+  /** Повторить последнюю реплику врача после ошибки. */
+  const retry = () => {
+    if (loading) return;
+    const history = msgs.filter((m) => !m.isError);
+    if (history[history.length - 1]?.role !== 'user') return;
+    setMsgs(history);
+    ask(history);
   };
 
   if (!pat) return (
@@ -156,7 +174,21 @@ export default function PatientScreen() {
         <Text style={s.endBarT}>✅  ЗАВЕРШИТЬ ПРИЁМ И ПОЛУЧИТЬ РАЗБОР</Text>
       </TouchableOpacity>
       <ScrollView ref={ref} style={{ flex: 1 }} contentContainerStyle={{ padding: 12 }}>
-        {msgs.map((m, i) => (
+        {!online && (
+          <View style={s.errBox}>
+            <Text style={s.errT}>Нет подключения к интернету — пациент ответит, когда связь вернётся.</Text>
+          </View>
+        )}
+        {msgs.map((m, i) => m.isError ? (
+          <View key={i} style={s.errBox}>
+            <Text selectable style={s.errT}>{m.content}</Text>
+            {i === msgs.length - 1 && !loading && (
+              <TouchableOpacity style={s.retryBtn} onPress={retry}>
+                <Text style={s.retryBtnT}>Повторить</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
           <View key={i} style={[s.mw, m.role === 'user' ? s.mr : s.ml]}>
             <Text style={s.mn}>{m.role === 'user' ? '👨‍⚕️ Врач' : pat.avatar}</Text>
             <View style={[s.bub, m.role === 'user' ? s.bDoc : s.bPat]}>
@@ -209,6 +241,10 @@ const s = StyleSheet.create({
   bDoc: { backgroundColor: C.primary, borderBottomRightRadius: 3 },
   bubT: { fontSize: 13, lineHeight: 19, color: C.text },
   bubTDoc: { color: C.white },
+  errBox: { alignSelf: 'stretch', backgroundColor: '#FDECEC', borderRadius: 12, padding: 12, marginBottom: 10, gap: 8 },
+  errT: { fontSize: 13, lineHeight: 18, color: '#A32D2D' },
+  retryBtn: { alignSelf: 'flex-start', backgroundColor: C.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
+  retryBtnT: { color: C.white, fontSize: 13, fontWeight: '700' },
   fb: { backgroundColor: C.successBg, borderTopWidth: 1, borderTopColor: '#86efac', padding: 12 },
   fbT: { fontSize: 12, color: '#166534', lineHeight: 17 },
   qr: { borderTopWidth: 1, borderTopColor: C.border, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: C.white },

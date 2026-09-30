@@ -11,8 +11,10 @@ import {
 } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
+import { useOnline } from '../../hooks/useOnline';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DENTAI_API_URL } from '../../constants/config';
+import { errorText, postJson } from '../../lib/api';
 
 type VerifiedSource = { number: number; source: string; title: string };
 type Msg = {
@@ -23,6 +25,14 @@ type Msg = {
   flagged?: boolean;
 };
 
+// Ответ ДентИИ занимает до ~30 с (большой промпт), даём запас.
+const ASK_TIMEOUT_MS = 60000;
+
+type AskResponse = { answer?: string; sources?: VerifiedSource[]; flagged?: boolean };
+
+/** История для модели: без плашек с ошибками — это не реплики ДентИИ. */
+const forModel = (list: Msg[]) => list.filter((m) => !m.isError).map((m) => ({ role: m.role, content: m.content }));
+
 const SUGGESTED_QUESTIONS = [
   'Дифдиагностика кариеса дентина и острого пульпита?',
   'Протокол лечения острого периодонтита',
@@ -32,6 +42,7 @@ const SUGGESTED_QUESTIONS = [
 
 export default function DentAIScreen() {
   const headerTop = useHeaderTopPadding();
+  const online = useOnline();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,56 +59,39 @@ export default function DentAIScreen() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   };
 
-  const send = async (textOverride?: string) => {
-    const text = (textOverride ?? input).trim();
-    if (!text || loading) return;
-
-    const next: Msg[] = [...msgs, { role: 'user', content: text }];
-    setMsgs(next);
-    setInput('');
+  const ask = async (history: Msg[]) => {
     setLoading(true);
     scrollToEnd();
-
     try {
-      const res = await fetch(`${DENTAI_API_URL}/api/dentai/ask`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: next.map((m) => ({ role: m.role, content: m.content })),
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMsgs([
-          ...next,
-          { role: 'assistant', content: data?.error || 'Сервер вернул ошибку.', isError: true },
-        ]);
-      } else {
-        setMsgs([
-          ...next,
-          {
-            role: 'assistant',
-            content: data.answer || '(пустой ответ)',
-            sources: data.sources || [],
-            flagged: !!data.flagged,
-          },
-        ]);
-      }
-    } catch {
+      const data = await postJson<AskResponse>(`${DENTAI_API_URL}/api/dentai/ask`, { messages: forModel(history) }, ASK_TIMEOUT_MS);
       setMsgs([
-        ...next,
-        {
-          role: 'assistant',
-          isError: true,
-          content:
-            'Не удалось связаться с сервером ДентИИ. Проверьте подключение или адрес сервера в constants/config.ts.',
-        },
+        ...history,
+        { role: 'assistant', content: data.answer || '(пустой ответ)', sources: data.sources || [], flagged: !!data.flagged },
       ]);
+    } catch (e) {
+      setMsgs([...history, { role: 'assistant', isError: true, content: errorText(e, 'ДентИИ') }]);
     } finally {
       setLoading(false);
       scrollToEnd();
     }
+  };
+
+  const send = (textOverride?: string) => {
+    const text = (textOverride ?? input).trim();
+    if (!text || loading) return;
+    const next: Msg[] = [...msgs.filter((m) => !m.isError), { role: 'user', content: text }];
+    setMsgs(next);
+    setInput('');
+    ask(next);
+  };
+
+  /** Повторить последний вопрос после ошибки. */
+  const retry = () => {
+    if (loading) return;
+    const history = msgs.filter((m) => !m.isError);
+    if (history[history.length - 1]?.role !== 'user') return;
+    setMsgs(history);
+    ask(history);
   };
 
   const resetChat = () => {
@@ -158,6 +152,12 @@ export default function DentAIScreen() {
         </Text>
       </View>
 
+      {!online && (
+        <View style={s.offlineBanner}>
+          <Text style={s.offlineBannerText}>Нет подключения к интернету — ДентИИ ответит, когда связь вернётся.</Text>
+        </View>
+      )}
+
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
@@ -198,6 +198,12 @@ export default function DentAIScreen() {
                 <Text selectable style={[s.assistantBubbleText, m.isError && s.assistantBubbleErrorText]}>
                   {m.content}
                 </Text>
+
+                {m.isError && i === msgs.length - 1 && !loading && (
+                  <TouchableOpacity style={s.retryBtn} onPress={retry}>
+                    <Text style={s.retryBtnText}>Повторить</Text>
+                  </TouchableOpacity>
+                )}
 
                 {m.flagged && !m.isError && (
                   <View style={s.flagBanner}>
@@ -284,6 +290,10 @@ const s = StyleSheet.create({
   },
   title: { color: C.white, fontSize: 22, fontWeight: '800' },
   subtitle: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 2 },
+  offlineBanner: { backgroundColor: '#FDECEC', paddingVertical: 8, paddingHorizontal: 16 },
+  offlineBannerText: { color: '#A32D2D', fontSize: 12, textAlign: 'center', lineHeight: 17 },
+  retryBtn: { alignSelf: 'flex-start', marginTop: 10, backgroundColor: C.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
+  retryBtnText: { color: C.white, fontSize: 13, fontWeight: '700' },
   resetBtn: {
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 12,
