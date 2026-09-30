@@ -24,6 +24,13 @@ export function useOfflineStatus(): string | null {
   return status;
 }
 
+/** Короткий номер сборки — начало хеша бандла, чтобы видеть, какая версия открыта. */
+function buildId(): string {
+  const src = document.querySelector<HTMLScriptElement>('script[src*="/entry-"]')?.src ?? '';
+  const m = src.match(/entry-([a-f0-9]{6})/);
+  return m ? `, сборка ${m[1]}` : '';
+}
+
 async function check(): Promise<string> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return 'не поддерживается';
   if (!navigator.serviceWorker.controller) return 'не готово: перезапустите приложение с интернетом';
@@ -35,7 +42,8 @@ async function check(): Promise<string> {
     if (!paths.includes('/')) missing.push('страница');
     if (!paths.some((p) => p.includes('/_expo/static/js/'))) missing.push('код');
     if (!paths.some((p) => p.endsWith('.ttf'))) missing.push('иконки');
-    return missing.length ? `не готово: нет — ${missing.join(', ')}` : `готово (${name.replace('denvise-', '')})`;
+    const ver = `${name.replace('denvise-', '')}${buildId()}`;
+    return missing.length ? `не готово: нет — ${missing.join(', ')} (${ver})` : `готово (${ver})`;
   } catch {
     return 'не готово: кеш недоступен';
   }

@@ -63,7 +63,7 @@ export default function DentAIScreen() {
     setLoading(true);
     scrollToEnd();
     try {
-      const data = await postJson<AskResponse>(`${DENTAI_API_URL}/api/dentai/ask`, { messages: forModel(history) }, ASK_TIMEOUT_MS);
+      const data = await postJson<AskResponse>(`${DENTAI_API_URL}/api/dentai/ask`, { messages: forModel(history) }, ASK_TIMEOUT_MS, `${DENTAI_API_URL}/health`);
       setMsgs([
         ...history,
         { role: 'assistant', content: data.answer || '(пустой ответ)', sources: data.sources || [], flagged: !!data.flagged },

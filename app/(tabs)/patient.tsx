@@ -70,7 +70,7 @@ export default function PatientScreen() {
     if (!pat) return;
     setLoading(true);
     try {
-      const d = await postJson<{ answer?: string }>(`${DENTAI_API_URL}/api/patient/chat`, { patientId: pat.id, messages: forModel(history) }, CHAT_TIMEOUT_MS);
+      const d = await postJson<{ answer?: string }>(`${DENTAI_API_URL}/api/patient/chat`, { patientId: pat.id, messages: forModel(history) }, CHAT_TIMEOUT_MS, `${DENTAI_API_URL}/health`);
       setMsgs([...history, { role: 'assistant', content: d.answer || '...' }]);
     } catch (e) {
       setMsgs([...history, { role: 'assistant', isError: true, content: errorText(e, 'ИИ-Пациент') }]);

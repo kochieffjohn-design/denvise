@@ -17,11 +17,30 @@ export function isKnownOffline(): boolean {
   return Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.onLine === false;
 }
 
-export async function postJson<T>(url: string, body: unknown, timeoutMs: number): Promise<T> {
+// Сколько ждать ответа на проверку связи (GET /health шлюза).
+const PROBE_TIMEOUT_MS = 6000;
+
+/**
+ * POST на шлюз. `probeUrl` — лёгкий GET того же сервера: он идёт параллельно
+ * с основным запросом, и если не ответил за PROBE_TIMEOUT_MS, основной запрос
+ * отменяется сразу. Иначе без сети пришлось бы ждать весь `timeoutMs` (ответ
+ * модели бывает долгим): в авиарежиме iOS запрос висит, а navigator.onLine
+ * при этом может оставаться true.
+ */
+export async function postJson<T>(url: string, body: unknown, timeoutMs: number, probeUrl?: string): Promise<T> {
   if (isKnownOffline()) throw new ApiError('offline', 'Нет подключения к интернету.');
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let reason: ApiErrorKind = 'timeout';
+  const abort = (kind: ApiErrorKind) => {
+    if (controller.signal.aborted) return;
+    reason = kind;
+    controller.abort();
+  };
+  const timer = setTimeout(() => abort('timeout'), timeoutMs);
+  let answered = false; // ответ пришёл — проверка связи уже ничего не отменяет
+  if (probeUrl) probe(probeUrl).then((ok) => { if (!ok && !answered) abort('network'); });
+
   let res: Response;
   try {
     res = await fetch(url, {
@@ -30,9 +49,14 @@ export async function postJson<T>(url: string, body: unknown, timeoutMs: number)
       body: JSON.stringify(body),
       signal: controller.signal,
     });
+    answered = true;
   } catch {
-    if (controller.signal.aborted) throw new ApiError('timeout', 'Сервер долго не отвечает.');
     if (isKnownOffline()) throw new ApiError('offline', 'Нет подключения к интернету.');
+    if (controller.signal.aborted) {
+      throw reason === 'timeout'
+        ? new ApiError('timeout', 'Сервер долго не отвечает.')
+        : new ApiError('network', 'Не удалось связаться с сервером.');
+    }
     throw new ApiError('network', 'Не удалось связаться с сервером.');
   } finally {
     clearTimeout(timer);
@@ -45,6 +69,20 @@ export async function postJson<T>(url: string, body: unknown, timeoutMs: number)
   return data as T;
 }
 
+/** true, если сервер ответил на GET за PROBE_TIMEOUT_MS (любым статусом). */
+async function probe(url: string): Promise<boolean> {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), PROBE_TIMEOUT_MS);
+  try {
+    await fetch(url, { cache: 'no-store', signal: c.signal });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 /** Текст для плашки с ошибкой. `what` — «ДентИИ» / «Пациент». */
 export function errorText(e: unknown, what: string): string {
   if (!(e instanceof ApiError)) return 'Что-то пошло не так. Попробуйте ещё раз.';
@@ -54,7 +92,7 @@ export function errorText(e: unknown, what: string): string {
     case 'timeout':
       return 'Сервер долго не отвечает. Проверьте подключение и нажмите «Повторить».';
     case 'network':
-      return 'Не удалось связаться с сервером. Проверьте подключение и нажмите «Повторить».';
+      return 'Нет связи с сервером. Проверьте подключение к интернету и нажмите «Повторить».';
     case 'server':
       return e.message;
   }
