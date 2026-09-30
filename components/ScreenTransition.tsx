@@ -9,8 +9,13 @@ import { Animated, Easing, Platform, StyleSheet } from 'react-native';
 // Новое содержимое проявляется со сдвигом: вглубь (depth растёт) — справа,
 // назад — слева. Смена вкладок анимируется самим таб-баром (animation: 'shift').
 
-const DURATION = 220;
-const OFFSET = 24;
+const DURATION = 300;
+// Насколько экран въезжает сбоку. 24px читалось как «проявление», а не въезд.
+const OFFSET = 40;
+// Плавный старт и плавная остановка (как CSS ease-in-out). Прежняя
+// Easing.out(cubic) проходила половину пути за первые ~40 мс — ощущалось
+// как резкое переключение, а не въезд.
+const EASING = Easing.bezier(0.42, 0, 0.58, 1);
 
 type Props = {
   id: string;
@@ -37,13 +42,17 @@ export function ScreenTransition({ id, depth, animateOnMount = false, children }
     Animated.timing(progress, {
       toValue: 1,
       duration: DURATION,
-      easing: Easing.out(Easing.cubic),
+      easing: Easing.linear, // кривые — отдельно для сдвига и прозрачности, ниже
       useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [shown, progress]);
 
-  const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [OFFSET * shown.direction, 0] });
-  return <Animated.View style={[s.fill, { opacity: progress, transform: [{ translateX }] }]}>{children}</Animated.View>;
+  // Сдвиг — плавный въезд за всё время перехода
+  const translateX = progress.interpolate({ inputRange: [0, 1], outputRange: [OFFSET * shown.direction, 0], easing: EASING });
+  // Прозрачность — быстрее, к середине экран уже виден: иначе после нажатия
+  // ~0.1 с почти пустой фон (старый экран исчезает сразу) и кажется, что тормозит
+  const opacity = progress.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 1, 1], easing: Easing.out(Easing.quad) });
+  return <Animated.View style={[s.fill, { opacity, transform: [{ translateX }] }]}>{children}</Animated.View>;
 }
 
 /**
