@@ -22,10 +22,6 @@ function TabIcon({ ionIcon, mciIcon, label, focused }: {
   );
 }
 
-// Разделы, открываемые с Главной, анимируют вход сами (components/ScreenTransition):
-// стандартный сдвиг вкладок брал направление из их порядка, и раздел въезжал слева.
-const SECTION_ANIMATION = 'none' as const;
-
 export default function TabLayout() {
   const tabBar = useTabBarMetrics();
   return (
@@ -53,20 +49,23 @@ export default function TabLayout() {
         // его отрицательным полем у иконки, иначе она смещается вниз на 5pt.
         tabBarItemStyle: { justifyContent: 'center', padding: 0 },
         tabBarIconStyle: { width: 72, height: TAB_ICON_HEIGHT, marginVertical: -5 },
-        animation: 'shift',
+        // Вкладки переключаются мгновенно, как в нативных iOS-приложениях. Со сдвигом
+        // уходящий экран гас поверх нового, и оба были видны полупрозрачными.
+        // Разделы анимируют свой вход сами (components/ScreenTransition).
+        animation: 'none',
       }}
     >
       <Tabs.Screen name="index"     options={{ tabBarIcon: ({ focused }) => <TabIcon ionIcon="home-outline"   label="Главная" focused={focused} /> }} />
       <Tabs.Screen name="exam"      options={{ tabBarIcon: ({ focused }) => <TabIcon ionIcon="school-outline" label="Экзамен" focused={focused} /> }} />
       <Tabs.Screen name="dentai"    options={{ tabBarIcon: ({ focused }) => <TabIcon mciIcon="brain"          label="ДентИИ" focused={focused} /> }} />
       <Tabs.Screen name="profile"   options={{ tabBarIcon: ({ focused }) => <TabIcon ionIcon="person-outline" label="Профиль" focused={focused} /> }} />
-      <Tabs.Screen name="patient"   options={{ href: null, animation: SECTION_ANIMATION }} />
-      <Tabs.Screen name="diag"      options={{ href: null, animation: SECTION_ANIMATION }} />
-      <Tabs.Screen name="comm"      options={{ href: null, animation: SECTION_ANIMATION }} />
-      <Tabs.Screen name="reception" options={{ href: null, animation: SECTION_ANIMATION }} />
-      <Tabs.Screen name="consult"   options={{ href: null, animation: SECTION_ANIMATION }} />
-      <Tabs.Screen name="stations"  options={{ href: null, animation: SECTION_ANIMATION }} />
-      <Tabs.Screen name="emergencies" options={{ href: null, animation: SECTION_ANIMATION }} />
+      <Tabs.Screen name="patient"   options={{ href: null }} />
+      <Tabs.Screen name="diag"      options={{ href: null }} />
+      <Tabs.Screen name="comm"      options={{ href: null }} />
+      <Tabs.Screen name="reception" options={{ href: null }} />
+      <Tabs.Screen name="consult"   options={{ href: null }} />
+      <Tabs.Screen name="stations"  options={{ href: null }} />
+      <Tabs.Screen name="emergencies" options={{ href: null }} />
     </Tabs>
   );
 }
