@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { addXP } from '../../data/xpStorage';
@@ -635,7 +636,9 @@ export default function ExamScreen() {
   const allOrdered = c.recSteps.every(s => stepOrder[s.id] != null);
 
   // ─── ФИНАЛ ───────────────────────────────────────────────────────────────
-  if (finished) return (
+  const t = useScreenTransition(finished ? 'result' : `case${caseIdx}-phase${phase}`, finished ? 5 : phase, { enterOnFocus: false }); // вкладка: вход анимирует таб-бар
+
+  if (finished) return t(
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrT}>Результат</Text>
@@ -705,7 +708,7 @@ export default function ExamScreen() {
   // ─── ОСНОВНОЙ ЭКРАН ───────────────────────────────────────────────────────
   const phases = ['Анамнез', 'Обследование', 'Диагноз', 'Тактика'];
 
-  return (
+  return t(
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrT}>Экзамен</Text>

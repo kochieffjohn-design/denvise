@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { STATIONS, type Station } from '../../data/clinicalData';
@@ -291,11 +292,13 @@ export default function StationsScreen() {
   const headerTop = useHeaderTopPadding();
   const [active, setActive] = useState<Station | null>(null);
 
+  const t = useScreenTransition(active ? `station-${active.id}` : 'list', active ? 1 : 0);
+
   if (active) {
-    return <StationDetail station={active} onBack={() => setActive(null)} />;
+    return t(<StationDetail station={active} onBack={() => setActive(null)} />);
   }
 
-  return (
+  return t(
     <View style={s.container}>
       <LinearGradient colors={[C.navyDeep, C.navyBase]} style={[s.hdr, { paddingTop: headerTop }]}>
         <View style={{ flex: 1 }}>

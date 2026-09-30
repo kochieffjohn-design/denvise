@@ -22,6 +22,10 @@ function TabIcon({ ionIcon, mciIcon, label, focused }: {
   );
 }
 
+// Разделы, открываемые с Главной, анимируют вход сами (components/ScreenTransition):
+// стандартный сдвиг вкладок брал направление из их порядка, и раздел въезжал слева.
+const SECTION_ANIMATION = 'none' as const;
+
 export default function TabLayout() {
   const tabBar = useTabBarMetrics();
   return (
@@ -56,13 +60,13 @@ export default function TabLayout() {
       <Tabs.Screen name="exam"      options={{ tabBarIcon: ({ focused }) => <TabIcon ionIcon="school-outline" label="Экзамен" focused={focused} /> }} />
       <Tabs.Screen name="dentai"    options={{ tabBarIcon: ({ focused }) => <TabIcon mciIcon="brain"          label="ДентИИ" focused={focused} /> }} />
       <Tabs.Screen name="profile"   options={{ tabBarIcon: ({ focused }) => <TabIcon ionIcon="person-outline" label="Профиль" focused={focused} /> }} />
-      <Tabs.Screen name="patient"   options={{ href: null }} />
-      <Tabs.Screen name="diag"      options={{ href: null }} />
-      <Tabs.Screen name="comm"      options={{ href: null }} />
-      <Tabs.Screen name="reception" options={{ href: null }} />
-      <Tabs.Screen name="consult"   options={{ href: null }} />
-      <Tabs.Screen name="stations"  options={{ href: null }} />
-      <Tabs.Screen name="emergencies" options={{ href: null }} />
+      <Tabs.Screen name="patient"   options={{ href: null, animation: SECTION_ANIMATION }} />
+      <Tabs.Screen name="diag"      options={{ href: null, animation: SECTION_ANIMATION }} />
+      <Tabs.Screen name="comm"      options={{ href: null, animation: SECTION_ANIMATION }} />
+      <Tabs.Screen name="reception" options={{ href: null, animation: SECTION_ANIMATION }} />
+      <Tabs.Screen name="consult"   options={{ href: null, animation: SECTION_ANIMATION }} />
+      <Tabs.Screen name="stations"  options={{ href: null, animation: SECTION_ANIMATION }} />
+      <Tabs.Screen name="emergencies" options={{ href: null, animation: SECTION_ANIMATION }} />
     </Tabs>
   );
 }

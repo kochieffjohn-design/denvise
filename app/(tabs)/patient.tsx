@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useOnline } from '../../hooks/useOnline';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
@@ -89,7 +90,9 @@ export default function PatientScreen() {
     ask(history);
   };
 
-  if (!pat) return (
+  const t = useScreenTransition(!pat ? 'list' : finished ? 'result' : `chat-${pat.id}`, !pat ? 0 : finished ? 2 : 1);
+
+  if (!pat) return t(
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}><Text style={s.title}>🤖 ИИ-Пациент</Text><Text style={s.sub}>Выберите психотип</Text></View>
       <ScrollView contentContainerStyle={s.grid}>
@@ -117,7 +120,7 @@ export default function PatientScreen() {
         ? { emoji: '💪', title: 'Неплохо! Есть куда расти', color: C.warn }
         : { emoji: '🌱', title: 'Первый блин комом — это нормально', color: C.danger };
 
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop, backgroundColor: grade.color }]}>
           <Text style={s.title}>Приём завершён</Text>
@@ -159,7 +162,7 @@ export default function PatientScreen() {
     );
   }
 
-  return (
+  return t(
     <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={80}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <TouchableOpacity onPress={() => setPat(null)} style={s.back}><Text style={s.backT}>← Назад</Text></TouchableOpacity>

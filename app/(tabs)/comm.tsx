@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import {
@@ -101,12 +102,14 @@ export default function CommScreen() {
   };
 
   // ── ИТОГ СЦЕНАРИЯ ──
+  const t = useScreenTransition(!active ? `list-${tab}` : scenarioDone ? 'result' : `scenario-${active.id}`, !active ? 0 : scenarioDone ? 2 : 1);
+
   if (active && scenarioDone) {
     const correctCount = correctFlags.filter(Boolean).length;
     const total = active.stages.length;
     const xp = 40 + correctCount * 10;
     const allCorrect = correctCount === total;
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <Text style={s.hdrTitle}>Приём завершён</Text>
@@ -136,7 +139,7 @@ export default function CommScreen() {
     const answered = selectedIdx !== null;
     const selectedOption = answered ? options[selectedIdx!] : null;
 
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.backBtn}>
@@ -282,7 +285,7 @@ export default function CommScreen() {
   }
 
   // ── СПИСОК ──
-  return (
+  return t(
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrTitle}>Коммуникация</Text>

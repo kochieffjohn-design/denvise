@@ -8,6 +8,7 @@ import {
       View,
 } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { EMERGENCIES, type Emergency } from '../../data/emergencyData';
@@ -238,9 +239,11 @@ export default function EmergenciesScreen() {
   const headerTop = useHeaderTopPadding();
   const [active, setActive] = useState<Emergency | null>(null);
 
-  if (active) return <EmergencyDetail item={active} onBack={() => setActive(null)} />;
+  const t = useScreenTransition(active ? `item-${active.id}` : 'list', active ? 1 : 0);
 
-  return (
+  if (active) return t(<EmergencyDetail item={active} onBack={() => setActive(null)} />);
+
+  return t(
     <View style={s.container}>
       <LinearGradient colors={[C.navyDeep, C.navyBase]} style={[s.hdr, { paddingTop: headerTop }]}>
         <View style={s.headerGlow} pointerEvents="none" />

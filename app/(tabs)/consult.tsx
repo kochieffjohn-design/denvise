@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { CONSULT_SECTIONS, GLOSSARY, type Script, type Section } from '../../data/clinicalData';
@@ -20,9 +21,11 @@ export default function ConsultScreen() {
       g.simple.toLowerCase().includes(search.toLowerCase())
     ), [search]);
 
+  const t = useScreenTransition(activeScript ? `script-${activeScript.title}` : activeSection ? `section-${activeSection.title}` : `list-${tab}`, activeScript ? 2 : activeSection ? 1 : 0);
+
   if (activeScript) {
     const sec = CONSULT_SECTIONS.find(s => s.scripts.find(sc => sc.id === activeScript.id));
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={() => setActiveScript(null)} style={s.backBtn}>
@@ -101,7 +104,7 @@ export default function ConsultScreen() {
   }
 
   if (activeSection) {
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop, backgroundColor: activeSection.color }]}>
           <TouchableOpacity onPress={() => setActiveSection(null)} style={s.backBtn}>
@@ -129,7 +132,7 @@ export default function ConsultScreen() {
     );
   }
 
-  return (
+  return t(
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrTitle}>Консультации</Text>

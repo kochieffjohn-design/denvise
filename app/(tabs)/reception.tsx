@@ -2,6 +2,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { PROCEDURES } from '../../data/clinicalData';
@@ -61,9 +62,11 @@ export default function ReceptionScreen() {
     return activeTag === 'Все' || ic?.tag === activeTag;
   });
 
+  const t = useScreenTransition(active ? `proc-${active.name}` : 'list', active ? 1 : 0);
+
   if (active) {
     const ic = ICONS[active.name];
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={() => { setActive(null); setStep(0); setTab('steps'); }} style={s.backBtn}>
@@ -142,7 +145,7 @@ export default function ReceptionScreen() {
     );
   }
 
-  return (
+  return t(
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrTitle}>Приём у доктора</Text>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
+import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DIAG_CASES } from '../../data/clinicalData';
@@ -180,6 +181,8 @@ const METHOD_RESULTS: Record<string, Record<string, string>> = {
   },
 };
 
+const DIAG_DEPTH: Record<Phase, number> = { list: 0, complaint: 1, methods: 2, diagnosis: 3, result: 4 };
+
 export default function DiagScreen() {
   const headerTop = useHeaderTopPadding();
   const [lvl, setLvl] = useState<Level>(1);
@@ -248,12 +251,14 @@ export default function DiagScreen() {
   };
 
   // ── РЕЗУЛЬТАТ ──
+  const t = useScreenTransition(`${phase}-${active?.id ?? ''}`, DIAG_DEPTH[phase]);
+
   if (phase === 'result' && active) {
     const d = done[active.id];
     const correct = active.questions[0];
     const required = REQUIRED_METHODS[active.id] || [];
     const missed = required.filter(m => !selectedMethods.includes(m));
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← К списку</Text></TouchableOpacity>
@@ -319,7 +324,7 @@ export default function DiagScreen() {
   // ── ДИАГНОЗ ──
   if (phase === 'diagnosis' && active) {
     const correct = active.questions[0];
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← Выход</Text></TouchableOpacity>
@@ -383,7 +388,7 @@ export default function DiagScreen() {
   // ── МЕТОДЫ ОБСЛЕДОВАНИЯ ──
   if (phase === 'methods' && active) {
     const required = REQUIRED_METHODS[active.id] || [];
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← Выход</Text></TouchableOpacity>
@@ -450,7 +455,7 @@ export default function DiagScreen() {
 
   // ── ЖАЛОБЫ ──
   if (phase === 'complaint' && active) {
-    return (
+    return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
           <TouchableOpacity onPress={reset} style={s.back}><Text style={s.backT}>← Назад</Text></TouchableOpacity>
@@ -486,7 +491,7 @@ export default function DiagScreen() {
   }
 
   // ── СПИСОК КЕЙСОВ ──
-  return (
+  return t(
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.title}>Диагностический тренажёр</Text>
