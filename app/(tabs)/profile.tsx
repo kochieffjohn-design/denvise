@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
+import { useOfflineStatus } from '../../hooks/useOfflineStatus';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { getStats, resetStats, type Stats } from '../../data/xpStorage';
 
@@ -58,6 +59,7 @@ function Medallion({ level, size = 62, locked = false }: { level: typeof LEVELS[
 
 export default function ProfileScreen() {
   const headerTop = useHeaderTopPadding();
+  const offlineStatus = useOfflineStatus();
   const [tab, setTab] = useState<'profile' | 'levels'>('profile');
   const [stats, setStats] = useState<Stats>({
     xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
@@ -170,6 +172,12 @@ export default function ProfileScreen() {
               <Text style={s.infoLabel}>Версия</Text>
               <Text style={s.infoValue}>Denvise 4.0</Text>
             </View>
+            {offlineStatus && (
+              <View style={s.infoRow}>
+                <Text style={s.infoLabel}>Работа без сети</Text>
+                <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>{offlineStatus}</Text>
+              </View>
+            )}
             <Text style={s.infoLabel}>ДентИИ отвечает на основе учебных материалов Denvise.</Text>
           </View>
 
