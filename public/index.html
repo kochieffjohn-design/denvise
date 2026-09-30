@@ -149,5 +149,18 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
+    <script>
+      /*
+        Работа без интернета — public/sw.js. Регистрируем только в готовой
+        сборке (бандл лежит в /_expo/static/): на сервере разработки кеш
+        мешал бы видеть свежие правки.
+      */
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          if (!document.querySelector('script[src^="/_expo/static/"]')) return;
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+    </script>
   </body>
 </html>
