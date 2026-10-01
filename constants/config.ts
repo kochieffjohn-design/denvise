@@ -14,3 +14,10 @@
  */
 export const DENTAI_API_URL =
   process.env.EXPO_PUBLIC_DENTAI_API_URL || 'http://localhost:8787';
+
+/**
+ * Адрес ядра (core/: вход, профиль, прогресс). Пока ядро не выложено, в
+ * .env его нет — тогда вход выключен и приложение работает как раньше
+ * (тестовый стенд на Railway). Локально: EXPO_PUBLIC_CORE_URL=http://localhost:8788
+ */
+export const CORE_URL = process.env.EXPO_PUBLIC_CORE_URL || '';

@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
 import { useOfflineStatus } from '../../hooks/useOfflineStatus';
+import { authEnabled, useSession } from '../../lib/session';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { getStats, resetStats, type Stats } from '../../data/xpStorage';
 
@@ -60,6 +61,7 @@ function Medallion({ level, size = 62, locked = false }: { level: typeof LEVELS[
 export default function ProfileScreen() {
   const headerTop = useHeaderTopPadding();
   const offlineStatus = useOfflineStatus();
+  const { user, signOut } = useSession();
   const [tab, setTab] = useState<'profile' | 'levels'>('profile');
   const [stats, setStats] = useState<Stats>({
     xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
@@ -165,6 +167,19 @@ export default function ProfileScreen() {
               </View>
             ))}
           </View>
+
+          {authEnabled && user && (
+            <View style={s.infoCard}>
+              <Text style={s.infoTitle}>Аккаунт</Text>
+              <View style={s.infoRow}>
+                <Text style={s.infoLabel}>Почта</Text>
+                <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>{user.email}</Text>
+              </View>
+              <TouchableOpacity style={s.signOutBtn} onPress={signOut}>
+                <Text style={s.signOutBtnT}>Выйти</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={s.infoCard}>
             <Text style={s.infoTitle}>О приложении</Text>
@@ -320,6 +335,8 @@ const s = StyleSheet.create({
   infoValue: { fontSize: 13, fontWeight: '600', color: C.n900 },
   resetBtn: { borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
   resetBtnT: { fontSize: 13, color: C.n500, fontWeight: '500' },
+  signOutBtn: { marginTop: 4, borderRadius: 12, paddingVertical: 11, alignItems: 'center', backgroundColor: C.light },
+  signOutBtnT: { fontSize: 14, color: C.primary, fontWeight: '700' },
   levelsDesc: { fontSize: 13, color: C.n500, lineHeight: 19, textAlign: 'center' },
   xpGuide: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8 },
   xpGuideTitle: { fontSize: 14, fontWeight: '700', color: C.n900, marginBottom: 4 },

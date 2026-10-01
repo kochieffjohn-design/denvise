@@ -1,8 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C, SPECIALTY } from '../../constants/Colors';
@@ -182,12 +181,6 @@ export default function HomeScreen() {
   const [stats, setStats] = useState<Stats>({
     xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
   });
-
-  useEffect(() => {
-    AsyncStorage.getItem('denvise_onboarded').then(val => {
-      if (!val) router.push('/onboarding');
-    });
-  }, []);
 
   useFocusEffect(useCallback(() => {
     getStats().then(setStats);

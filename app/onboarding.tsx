@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
     Dimensions,
@@ -10,6 +8,7 @@ import {
     View,
 } from 'react-native';
 import { TouchableOpacity } from '../components/Touchable';
+import { useSession } from '../lib/session';
 import { C } from '../constants/Colors';
 import { useHeaderTopPadding, useScreenBottomPadding } from '../hooks/useSafeLayout';
 import { DIAG_CASES } from '../data/diagCases';
@@ -78,7 +77,7 @@ const SLIDES = [
 export default function OnboardingScreen() {
   const headerTop = useHeaderTopPadding();
   const bottomPad = useScreenBottomPadding();
-  const router = useRouter();
+  const { completeOnboarding } = useSession();
   const [current, setCurrent] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   // Ширина слайда = ширина контейнера, а не окна: на десктопе приложение
@@ -97,10 +96,8 @@ export default function OnboardingScreen() {
     scrollRef.current?.scrollTo({ x: index * pageWidth, animated: true });
   };
 
-  const finish = async () => {
-    await AsyncStorage.setItem('denvise_onboarded', '1');
-    router.replace('/(tabs)');
-  };
+  // Дальше экран выбирает корневой макет: вход или сразу приложение
+  const finish = () => completeOnboarding();
 
   const next = () => {
     if (current < SLIDES.length - 1) {
