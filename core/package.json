@@ -1,0 +1,36 @@
+{
+  "name": "denvise-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ядро Denvise (Yandex Cloud): пользователи, вход, прогресс, подписки, выдача контента. Модель вызывается только через LLM-шлюз в server/.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch scripts/dev.ts",
+    "start": "tsx src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:generate": "drizzle-kit generate",
+    "auth:schema": "auth generate --config src/auth.cli.ts --output src/db/auth-schema.ts --yes"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.3",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.3",
+    "hono": "4.13.12",
+    "pg": "8.23.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "@types/pg": "8.23.1",
+    "auth": "1.7.7",
+    "drizzle-kit": "0.31.11",
+    "embedded-postgres": "18.4.0-beta.17",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}
