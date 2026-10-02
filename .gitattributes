@@ -1,0 +1,4 @@
+# Скрипты и конфигурация для Linux-машины — всегда с переводами строк LF
+*.sh text eol=lf
+deploy/** text eol=lf
+core/Dockerfile text eol=lf
