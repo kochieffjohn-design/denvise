@@ -1,0 +1,13 @@
+# HTTPS-сертификаты Let's Encrypt Caddy получает и продлевает сам.
+# X-Forwarded-For с IP пользователя Caddy выставляет сам и не доверяет
+# такому заголовку от клиентов — ядро берёт из него IP для лимитов.
+
+api.denvise.ru {
+	encode zstd gzip
+	reverse_proxy core:8788
+}
+
+test-api.denvise.ru {
+	encode zstd gzip
+	reverse_proxy core-test:8788
+}

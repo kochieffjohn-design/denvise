@@ -15,7 +15,15 @@ const Env = z.object({
   WEB_ORIGINS: z.string().default('http://localhost:8081'),
   // Общий домен для cookie сайта и ядра в проде: denvise.ru
   COOKIE_DOMAIN: z.string().optional(),
-});
+  // Как отправлять письма: console (разработка) или postbox (прод)
+  EMAIL_TRANSPORT: z.enum(['console', 'postbox']).default('console'),
+  EMAIL_FROM: z.string().default('Denvise <noreply@denvise.ru>'),
+})
+  // В проде письма с кодом входа обязаны реально уходить
+  .refine((e) => e.NODE_ENV !== 'production' || e.EMAIL_TRANSPORT === 'postbox', {
+    message: 'в production нужен EMAIL_TRANSPORT=postbox',
+    path: ['EMAIL_TRANSPORT'],
+  });
 
 export type Env = z.infer<typeof Env>;
 

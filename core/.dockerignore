@@ -1,0 +1,8 @@
+node_modules
+.pgdata
+test
+scripts
+vitest.config.ts
+drizzle.config.ts
+Dockerfile
+.dockerignore

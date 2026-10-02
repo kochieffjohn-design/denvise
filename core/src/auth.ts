@@ -76,6 +76,11 @@ export function createAuth(env: Env, db: Db) {
       // Проверка Origin против подделки запросов — всегда. Под тестами Better
       // Auth по умолчанию её выключает, а тесты должны проверять боевое поведение
       disableOriginCheck: false,
+      // IP пользователя для лимитов (3 письма в минуту и т.п.). Ядро доступно
+      // только через Caddy, который сам выставляет X-Forwarded-For и не
+      // принимает этот заголовок от клиентов — поэтому ему можно доверять.
+      // Без этого лимит был бы один общий на всех пользователей.
+      ipAddress: { ipAddressHeaders: ['x-forwarded-for'] },
       cookiePrefix: 'denvise',
       useSecureCookies: env.NODE_ENV === 'production',
       // Сайт (denvise.ru) и ядро (api.denvise.ru) — один сайт для браузера:

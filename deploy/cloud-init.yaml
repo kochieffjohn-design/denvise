@@ -1,0 +1,37 @@
+#cloud-config
+# Первоначальная настройка машины ядра (Ubuntu 24.04) при создании.
+# __SSH_PUBLIC_KEY__ подставляет скрипт создания машины.
+
+users:
+  - name: denvise
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      - __SSH_PUBLIC_KEY__
+
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - unattended-upgrades
+
+write_files:
+  # Логи контейнеров не разрастаются: по 10 МБ, не больше 5 файлов
+  - path: /etc/docker/daemon.json
+    content: |
+      {"log-driver": "json-file", "log-opts": {"max-size": "10m", "max-file": "5"}}
+  # Обновления безопасности ставятся сами; если нужна перезагрузка (ядро
+  # системы) — ночью, в 04:30 по Москве. Контейнеры поднимутся сами.
+  - path: /etc/apt/apt.conf.d/52denvise-reboot
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "01:30";
+
+runcmd:
+  - usermod -aG docker denvise
+  - systemctl enable --now docker
+  - systemctl enable --now unattended-upgrades
+  - mkdir -p /opt/denvise/env
+  - chown -R denvise:denvise /opt/denvise
+  - chmod 700 /opt/denvise/env

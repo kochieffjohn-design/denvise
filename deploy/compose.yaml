@@ -1,0 +1,32 @@
+# Что работает на машине ядра в Yandex Cloud (/opt/denvise).
+# Снаружи доступен только Caddy (80/443); ядра — только внутри сети Docker.
+name: denvise
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # сертификаты HTTPS — переживают перезапуск
+      - caddy_config:/config
+
+  # Боевое ядро — api.denvise.ru. Образ :prod — тот же, что прошёл проверку на :test
+  core:
+    image: denvise-core:prod
+    restart: unless-stopped
+    env_file: ./env/prod.env
+
+  # Тестовое ядро — test-api.denvise.ru, своя база denvise_test
+  core-test:
+    image: denvise-core:test
+    restart: unless-stopped
+    env_file: ./env/test.env
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -10,7 +10,7 @@ import { loadEnv } from '../src/env.js';
 export const WEB = 'http://localhost:8081';
 
 /** Настоящий PostgreSQL во временной папке + ядро поверх него. */
-export async function startTestCore() {
+export async function startTestCore({ nodeEnv = 'test' }: { nodeEnv?: 'test' | 'development' } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'denvise-core-test-'));
   const port = 55000 + Math.floor(Math.random() * 2000);
   const pg = new EmbeddedPostgres({ databaseDir: dir, user: 'test', password: 'test', port, persistent: false, onLog: () => {} });
@@ -19,7 +19,7 @@ export async function startTestCore() {
   await pg.createDatabase('core');
 
   const env = loadEnv({
-    NODE_ENV: 'test',
+    NODE_ENV: nodeEnv,
     DATABASE_URL: `postgres://test:test@localhost:${port}/core`,
     BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-00',
     BETTER_AUTH_URL: 'http://localhost:8788',

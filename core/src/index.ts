@@ -6,12 +6,12 @@ import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
 import { createAuth } from './auth.js';
 import { createDb, runMigrations } from './db/index.js';
-import { assertEmailConfigured } from './email.js';
+import { configureEmail } from './email.js';
 import { loadEnv } from './env.js';
 
 export async function start() {
   const env = loadEnv();
-  assertEmailConfigured(env.NODE_ENV);
+  configureEmail({ transport: env.EMAIL_TRANSPORT, from: env.EMAIL_FROM });
   const { db, pool } = createDb(env.DATABASE_URL);
   await runMigrations(db);
   const app = createApp({ env, auth: createAuth(env, db), db });
