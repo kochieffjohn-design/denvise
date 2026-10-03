@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { CORE_URL, DENTAI_API_URL } from '../constants/config';
 
 // Запросы к шлюзу ДентИИ / ИИ-Пациента с таймаутом и понятными причинами ошибок.
 // Без таймаута в авиарежиме на iPhone запрос не падает, а висит — и индикатор
@@ -27,7 +28,13 @@ const PROBE_TIMEOUT_MS = 6000;
  * модели бывает долгим): в авиарежиме iOS запрос висит, а navigator.onLine
  * при этом может оставаться true.
  */
-export async function postJson<T>(url: string, body: unknown, timeoutMs: number, probeUrl?: string): Promise<T> {
+export async function postJson<T>(
+  url: string,
+  body: unknown,
+  timeoutMs: number,
+  probeUrl?: string,
+  credentials: RequestCredentials = 'same-origin'
+): Promise<T> {
   if (isKnownOffline()) throw new ApiError('offline', 'Нет подключения к интернету.');
 
   const controller = new AbortController();
@@ -48,6 +55,7 @@ export async function postJson<T>(url: string, body: unknown, timeoutMs: number,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: controller.signal,
+      credentials,
     });
     answered = true;
   } catch {
@@ -69,12 +77,30 @@ export async function postJson<T>(url: string, body: unknown, timeoutMs: number,
   return data as T;
 }
 
+// ДентИИ и ИИ-Пациент: со входом — через ядро (cookie сессии, лимиты на
+// пользователя; ядро передаёт запрос шлюзу за рубежом), без входа — напрямую
+// в шлюз (локальная разработка, стенд на Railway).
+const AI_BASE = CORE_URL || DENTAI_API_URL;
+const AI_CREDENTIALS: RequestCredentials = CORE_URL ? 'include' : 'same-origin';
+
+/** POST к ДентИИ / ИИ-Пациенту, path — например '/api/dentai/ask'. */
+export function aiPost<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {
+  return postJson<T>(AI_BASE + path, body, timeoutMs, AI_BASE + '/health', AI_CREDENTIALS);
+}
+
+/** GET к ДентИИ (например, полный текст источника). */
+export function aiGet(path: string): Promise<Response> {
+  return fetch(AI_BASE + path, { credentials: AI_CREDENTIALS });
+}
+
 /** true, если сервер ответил на GET за PROBE_TIMEOUT_MS (любым статусом). */
 async function probe(url: string): Promise<boolean> {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), PROBE_TIMEOUT_MS);
   try {
-    await fetch(url, { cache: 'no-store', signal: c.signal });
+    // no-cors: ответ читать не нужно, важно лишь, что сервер отозвался —
+    // и CORS-заголовки на /health тогда не требуются (у ядра их там нет)
+    await fetch(url, { cache: 'no-store', mode: 'no-cors', signal: c.signal });
     return true;
   } catch {
     return false;

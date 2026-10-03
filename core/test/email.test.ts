@@ -71,7 +71,13 @@ describe('настройки', () => {
     expect(() => loadEnv({ ...base, NODE_ENV: 'production' })).toThrow(/EMAIL_TRANSPORT/);
   });
 
-  it('в production с Postbox — можно', () => {
-    expect(loadEnv({ ...base, NODE_ENV: 'production', EMAIL_TRANSPORT: 'postbox' }).EMAIL_TRANSPORT).toBe('postbox');
+  const gateway = { GATEWAY_URL: 'https://gateway.example', GATEWAY_KEY: 'k'.repeat(32) };
+
+  it('в production с Postbox и шлюзом — можно', () => {
+    expect(loadEnv({ ...base, ...gateway, NODE_ENV: 'production', EMAIL_TRANSPORT: 'postbox' }).EMAIL_TRANSPORT).toBe('postbox');
+  });
+
+  it('в production без ключа шлюза ядро не стартует', () => {
+    expect(() => loadEnv({ ...base, NODE_ENV: 'production', EMAIL_TRANSPORT: 'postbox', GATEWAY_URL: gateway.GATEWAY_URL })).toThrow(/GATEWAY_KEY/);
   });
 });

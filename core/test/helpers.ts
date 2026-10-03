@@ -10,7 +10,10 @@ import { loadEnv } from '../src/env.js';
 export const WEB = 'http://localhost:8081';
 
 /** Настоящий PostgreSQL во временной папке + ядро поверх него. */
-export async function startTestCore({ nodeEnv = 'test' }: { nodeEnv?: 'test' | 'development' } = {}) {
+export async function startTestCore({
+  nodeEnv = 'test',
+  gatewayFetch,
+}: { nodeEnv?: 'test' | 'development'; gatewayFetch?: typeof fetch } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'denvise-core-test-'));
   const port = 55000 + Math.floor(Math.random() * 2000);
   const pg = new EmbeddedPostgres({ databaseDir: dir, user: 'test', password: 'test', port, persistent: false, onLog: () => {} });
@@ -24,10 +27,12 @@ export async function startTestCore({ nodeEnv = 'test' }: { nodeEnv?: 'test' | '
     BETTER_AUTH_SECRET: 'test-secret-test-secret-test-secret-00',
     BETTER_AUTH_URL: 'http://localhost:8788',
     WEB_ORIGINS: WEB,
+    GATEWAY_URL: 'https://gateway.test',
+    GATEWAY_KEY: 'test-gateway-key-test-gateway-key-00',
   });
   const { db, pool } = createDb(env.DATABASE_URL);
   await runMigrations(db);
-  const app = createApp({ env, auth: createAuth(env, db), db });
+  const app = createApp({ env, auth: createAuth(env, db), db, gatewayFetch });
 
   return {
     app,

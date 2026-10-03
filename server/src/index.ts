@@ -1,6 +1,7 @@
 import cors from 'cors';
 import 'dotenv/config';
-import express from 'express';
+import express, { type Request } from 'express';
+import { timingSafeEqual } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { PATIENTS } from '../data/patients';
 import { checkCitations } from './citations';
@@ -18,6 +19,27 @@ app.set('trust proxy', 1);
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json({ limit: '256kb' }));
 
+// Ядро (Yandex Cloud) представляется секретным ключом. Все его запросы идут
+// с одного IP, поэтому лимит по IP к ним не применяется — лимиты на каждого
+// пользователя считает ядро. GATEWAY_REQUIRE_KEY=1 — запросы без ключа
+// отклоняются (включить, когда напрямую к шлюзу не ходит ни одно приложение).
+const GATEWAY_KEY = process.env.GATEWAY_KEY || '';
+const REQUIRE_KEY = process.env.GATEWAY_REQUIRE_KEY === '1';
+if (REQUIRE_KEY && !GATEWAY_KEY) throw new Error('GATEWAY_REQUIRE_KEY=1 без GATEWAY_KEY');
+
+function fromCore(req: Request): boolean {
+  const got = req.get('x-gateway-key');
+  if (!GATEWAY_KEY || !got) return false;
+  const a = Buffer.from(got);
+  const b = Buffer.from(GATEWAY_KEY);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+app.use('/api', (req, res, next) => {
+  if (REQUIRE_KEY && !fromCore(req)) return res.status(403).json({ error: 'Доступ только через приложение Denvise.' });
+  next();
+});
+
 // Базовая защита от злоупотребления / случайного «залипания» клиента в цикле
 // запросов. На MVP-масштабе этого достаточно; при росте — вынести на уровень
 // API-шлюза/CDN.
@@ -26,6 +48,7 @@ const limiter = rateLimit({
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: fromCore,
   message: { error: 'Слишком много запросов. Подождите несколько минут.' },
 });
 

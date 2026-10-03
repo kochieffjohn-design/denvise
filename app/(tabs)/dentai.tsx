@@ -13,8 +13,7 @@ import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
 import { useOnline } from '../../hooks/useOnline';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
-import { DENTAI_API_URL } from '../../constants/config';
-import { errorText, postJson } from '../../lib/api';
+import { aiGet, aiPost, errorText } from '../../lib/api';
 
 type VerifiedSource = { number: number; source: string; title: string };
 type Msg = {
@@ -63,7 +62,7 @@ export default function DentAIScreen() {
     setLoading(true);
     scrollToEnd();
     try {
-      const data = await postJson<AskResponse>(`${DENTAI_API_URL}/api/dentai/ask`, { messages: forModel(history) }, ASK_TIMEOUT_MS, `${DENTAI_API_URL}/health`);
+      const data = await aiPost<AskResponse>('/api/dentai/ask', { messages: forModel(history) }, ASK_TIMEOUT_MS);
       setMsgs([
         ...history,
         { role: 'assistant', content: data.answer || '(пустой ответ)', sources: data.sources || [], flagged: !!data.flagged },
@@ -114,7 +113,7 @@ export default function DentAIScreen() {
 
     setLoadingSource(number);
     try {
-      const res = await fetch(`${DENTAI_API_URL}/api/dentai/source/${number}`);
+      const res = await aiGet(`/api/dentai/source/${number}`);
       const data = await res.json();
       if (res.ok) {
         setSourceTexts((prev) => ({ ...prev, [number]: data.text }));

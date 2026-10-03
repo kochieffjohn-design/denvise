@@ -6,8 +6,7 @@ import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useOnline } from '../../hooks/useOnline';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
-import { DENTAI_API_URL } from '../../constants/config';
-import { errorText, postJson } from '../../lib/api';
+import { aiPost, errorText } from '../../lib/api';
 import { PATIENTS } from '../../data/clinicalData';
 import { addXP, type Stats } from '../../data/xpStorage';
 
@@ -72,7 +71,7 @@ export default function PatientScreen() {
     if (!pat) return;
     setLoading(true);
     try {
-      const d = await postJson<{ answer?: string }>(`${DENTAI_API_URL}/api/patient/chat`, { patientId: pat.id, messages: forModel(history) }, CHAT_TIMEOUT_MS, `${DENTAI_API_URL}/health`);
+      const d = await aiPost<{ answer?: string }>('/api/patient/chat', { patientId: pat.id, messages: forModel(history) }, CHAT_TIMEOUT_MS);
       setMsgs([...history, { role: 'assistant', content: d.answer || '...' }]);
     } catch (e) {
       setMsgs([...history, { role: 'assistant', isError: true, content: errorText(e, 'ИИ-Пациент') }]);

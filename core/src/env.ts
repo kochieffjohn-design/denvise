@@ -18,11 +18,19 @@ const Env = z.object({
   // Как отправлять письма: console (разработка) или postbox (прод)
   EMAIL_TRANSPORT: z.enum(['console', 'postbox']).default('console'),
   EMAIL_FROM: z.string().default('Denvise <noreply@denvise.ru>'),
+  // LLM-шлюз ДентИИ и ИИ-Пациента (Railway, за рубежом) и секретный ключ ядра для него
+  GATEWAY_URL: z.string().url().default('http://localhost:8787'),
+  GATEWAY_KEY: z.string().min(32).optional(),
 })
   // В проде письма с кодом входа обязаны реально уходить
   .refine((e) => e.NODE_ENV !== 'production' || e.EMAIL_TRANSPORT === 'postbox', {
     message: 'в production нужен EMAIL_TRANSPORT=postbox',
     path: ['EMAIL_TRANSPORT'],
+  })
+  // В проде ядро ходит в настоящий шлюз и представляется ему ключом
+  .refine((e) => e.NODE_ENV !== 'production' || (!!e.GATEWAY_KEY && !e.GATEWAY_URL.includes('localhost')), {
+    message: 'в production нужны GATEWAY_URL шлюза и GATEWAY_KEY',
+    path: ['GATEWAY_KEY'],
   });
 
 export type Env = z.infer<typeof Env>;
