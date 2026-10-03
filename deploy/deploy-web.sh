@@ -12,8 +12,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 TARGET="${1:-}"
 case "$TARGET" in
-  test) CORE_URL="https://test-api.denvise.ru"; SITE="https://test.denvise.ru" ;;
-  prod) CORE_URL="https://api.denvise.ru"; SITE="https://denvise.ru" ;;
+  test) CORE_URL="https://test-api.denvise.ru"; OTHER_URL="https://api.denvise.ru"; SITE="https://test.denvise.ru" ;;
+  prod) CORE_URL="https://api.denvise.ru"; OTHER_URL="https://test-api.denvise.ru"; SITE="https://denvise.ru" ;;
   *) echo "Использование: deploy/deploy-web.sh test|prod"; exit 1 ;;
 esac
 [[ -f deploy/.vm ]] || { echo "Нет deploy/.vm с IP машины"; exit 1; }
@@ -31,8 +31,10 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 echo "Сборка сайта ($TARGET) из коммита $SHA…"
-EXPO_PUBLIC_CORE_URL="$CORE_URL" CI=1 npx expo export -p web --output-dir "$WORK/dist" >/dev/null
+# --clear обязателен: иначе сборщик берёт из кеша файлы с адресом ядра прошлой сборки
+EXPO_PUBLIC_CORE_URL="$CORE_URL" CI=1 npx expo export -p web --clear --output-dir "$WORK/dist" >/dev/null
 grep -rq "$CORE_URL" "$WORK/dist/_expo" || { echo "ОШИБКА: в сборке нет адреса ядра $CORE_URL"; exit 1; }
+! grep -rqF "\"$OTHER_URL" "$WORK/dist/_expo" || { echo "ОШИБКА: в сборке адрес чужого ядра $OTHER_URL"; exit 1; }
 BUNDLE="$(grep -o "/_expo/static/js/web/[^\"]*.js" "$WORK/dist/index.html" | head -1)"
 
 tar -czf "$WORK/web.tgz" -C "$WORK/dist" .
