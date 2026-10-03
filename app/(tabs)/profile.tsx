@@ -1,13 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
 import { useOfflineStatus } from '../../hooks/useOfflineStatus';
 import { authEnabled, useSession } from '../../lib/session';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
-import { getStats, resetStats, type Stats } from '../../data/xpStorage';
+import { useProgress } from '../../lib/progress';
 
 const LEVELS = [
   { level: 1, title: 'Интерн',           minXp: 0,    maxXp: 199,  roman: 'I',    c1: '#94A3B8', c2: '#CBD5E1' },
@@ -58,18 +57,32 @@ function Medallion({ level, size = 62, locked = false }: { level: typeof LEVELS[
   );
 }
 
+/** Сброс стирает прогресс и в аккаунте — только после подтверждения. */
+function confirmReset(reset: () => Promise<void>) {
+  const title = 'Сбросить весь прогресс?';
+  const message = 'Опыт, серия дней и пройденные задания удалятся из аккаунта на всех устройствах. Отменить это нельзя.';
+  const run = () =>
+    reset().catch(() => {
+      const err = 'Не удалось сбросить: нет связи с сервером. Попробуйте, когда появится интернет.';
+      if (Platform.OS === 'web') window.alert(err);
+      else Alert.alert('Ошибка', err);
+    });
+  if (Platform.OS === 'web') {
+    if (window.confirm(`${title}\n\n${message}`)) run();
+    return;
+  }
+  Alert.alert(title, message, [
+    { text: 'Отмена', style: 'cancel' },
+    { text: 'Сбросить', style: 'destructive', onPress: run },
+  ]);
+}
+
 export default function ProfileScreen() {
   const headerTop = useHeaderTopPadding();
   const offlineStatus = useOfflineStatus();
   const { user, signOut } = useSession();
   const [tab, setTab] = useState<'profile' | 'levels'>('profile');
-  const [stats, setStats] = useState<Stats>({
-    xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
-  });
-
-  useFocusEffect(useCallback(() => {
-    getStats().then(setStats);
-  }, []));
+  const { stats, reset } = useProgress();
 
   const xp = stats.xp;
   const currentLevel = getCurrentLevel(xp);
@@ -196,11 +209,7 @@ export default function ProfileScreen() {
             <Text style={s.infoLabel}>ДентИИ отвечает на основе учебных материалов Denvise.</Text>
           </View>
 
-          <TouchableOpacity style={s.resetBtn} onPress={() => {
-            resetStats().then(() => setStats({
-              xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
-            }));
-          }}>
+          <TouchableOpacity style={s.resetBtn} onPress={() => confirmReset(reset)}>
             <Text style={s.resetBtnT}>Сбросить прогресс</Text>
           </TouchableOpacity>
 

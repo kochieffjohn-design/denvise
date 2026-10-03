@@ -4,6 +4,7 @@ import type { Auth } from './auth.js';
 import type { Db } from './db/index.js';
 import { type Env, webOrigins } from './env.js';
 import { AI_LIMIT, forward, type GatewayConfig, UserRateLimiter } from './gateway.js';
+import { registerProgress } from './progress.js';
 import { sql } from 'drizzle-orm';
 
 type Session = Awaited<ReturnType<Auth['api']['getSession']>>;
@@ -67,6 +68,9 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
     if (!c.get('session')) return c.json({ error: 'Войдите в аккаунт.' }, 401);
     return forward(c, gw, `/api/dentai/source/${c.req.param('number')}`, 'GET');
   });
+
+  // Прогресс: пройденные задания, опыт, серия дней
+  registerProgress(app, db);
 
   return app;
 }

@@ -1,14 +1,14 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C, SPECIALTY } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { shadowCard } from '../../constants/shadows';
 import { COMM_SCENARIOS, CONSULT_SECTIONS, DIAG_CASES, EMERGENCIES, EXAM_CASES, PATIENTS, PROCEDURE_SPECIALTIES, PROCEDURES, STATIONS } from '../../data/clinicalData';
-import { getStats, type Stats } from '../../data/xpStorage';
+import { useProgress } from '../../lib/progress';
 import {
   CASE_FORMS, CONDITION_FORMS, DIRECTION_FORMS, plural, PROTOCOL_FORMS, PSYCHOTYPE_FORMS, SCENARIO_FORMS, SCRIPT_FORMS, STATION_FORMS,
 } from '../../lib/plural';
@@ -178,13 +178,7 @@ function ModuleCard({ m, progress, onPress }: { m: typeof MODULES[0]; progress: 
 export default function HomeScreen() {
   const headerTop = useHeaderTopPadding();
   const router = useRouter();
-  const [stats, setStats] = useState<Stats>({
-    xp: 0, diagCases: 0, commScenarios: 0, exams: 0, lastUpdated: 0, streak: 0, lastActivityDate: '',
-  });
-
-  useFocusEffect(useCallback(() => {
-    getStats().then(setStats);
-  }, []));
+  const { stats } = useProgress();
 
   const getProgress = (key?: string) => {
     if (!key) return null;

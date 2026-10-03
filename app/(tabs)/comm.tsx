@@ -18,7 +18,7 @@ import {
   shuffleOptions,
   type CommQuizOption,
 } from '../../data/clinicalData';
-import { addXP } from '../../data/xpStorage';
+import { useProgress } from '../../lib/progress';
 
 type Scenario = typeof COMM_SCENARIOS[0];
 
@@ -43,6 +43,7 @@ function PatientAvatar({ type }: { type: string }) {
 }
 
 export default function CommScreen() {
+  const { record } = useProgress();
   const headerTop = useHeaderTopPadding();
   const [active, setActive] = useState<Scenario | null>(null);
   const [stageIdx, setStageIdx] = useState(0);
@@ -96,7 +97,7 @@ export default function CommScreen() {
       loadStage(active, next);
     } else {
       const correctCount = correctFlags.filter(Boolean).length;
-      addXP(40 + correctCount * 10, 'comm');
+      record('comm', active.id, 40 + correctCount * 10);
       setScenarioDone(true);
     }
   };

@@ -70,3 +70,15 @@ export function client(app: { request: (path: string, init?: RequestInit) => Res
   };
   return { send, jar };
 }
+
+/** Вход по коду из «письма» (в тестах письма копятся в sentEmails); клиент с cookie сессии. */
+export async function signIn(app: Parameters<typeof client>[0], email: string) {
+  const { sentEmails } = await import('../src/email.js');
+  const c = client(app);
+  await c.send('/api/auth/email-otp/send-verification-otp', { method: 'POST', json: { email, type: 'sign-in' } });
+  await new Promise((r) => setTimeout(r, 20)); // письмо отправляется без ожидания
+  const otp = [...sentEmails].reverse().find((m) => m.to === email)?.text.match(/\b(\d{6})\b/)?.[1];
+  const res = await c.send('/api/auth/sign-in/email-otp', { method: 'POST', json: { email, otp } });
+  if (res.status !== 200) throw new Error(`вход не удался: ${res.status}`);
+  return c;
+}

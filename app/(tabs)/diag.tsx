@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DIAG_CASES } from '../../data/clinicalData';
-import { addXP, getDiagDone, markDiagDone } from '../../data/xpStorage';
+import { useProgress } from '../../lib/progress';
 
 type Level = 1 | 2 | 3;
 type Phase = 'list' | 'complaint' | 'methods' | 'diagnosis' | 'result';
@@ -195,11 +195,8 @@ export default function DiagScreen() {
   const [score, setScore] = useState(0);
   const [diagOptions, setDiagOptions] = useState<string[]>([]);
   const [done, setDone] = useState<Record<string, { passed: boolean; xp: number }>>({});
-  const [donePersisted, setDonePersisted] = useState<string[]>([]);
-
-  useEffect(() => {
-    getDiagDone().then(setDonePersisted);
-  }, []);
+  const { stats, record } = useProgress();
+  const donePersisted = stats.diagDone;
 
   const cases = DIAG_CASES.filter(c => c.level === lvl);
 
@@ -235,8 +232,7 @@ export default function DiagScreen() {
     setDiagAnswered(true);
     setDone(d => ({ ...d, [active.id]: { passed, xp: total } }));
     if (passed) {
-      addXP(total, 'diag');
-      markDiagDone(active.id).then(setDonePersisted);
+      record('diag', active.id, total);
     }
   };
 

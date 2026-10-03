@@ -11,7 +11,7 @@ import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { EXAM_CASES, type RecStep } from '../../data/examCases';
-import { addXP } from '../../data/xpStorage';
+import { useProgress } from '../../lib/progress';
 
 // ─── УТИЛИТЫ ─────────────────────────────────────────────────────────────────
 function shuffle<T>(arr: T[]): T[] {
@@ -20,6 +20,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 // ─── ЭКРАН ───────────────────────────────────────────────────────────────────
 export default function ExamScreen() {
+  const { record } = useProgress();
   const headerTop = useHeaderTopPadding();
   const [caseIdx, setCaseIdx] = useState(() => Math.floor(Math.random() * EXAM_CASES.length));
   const [phase, setPhase] = useState<1 | 2 | 3 | 4>(1);
@@ -82,7 +83,7 @@ export default function ExamScreen() {
  const submitTactics = () => {
   const score = anamScore + methodScore + diagScore + tacticScore;
   const xp = score >= 85 ? 120 : score >= 70 ? 90 : score >= 55 ? 60 : 30;
-  addXP(xp, 'exam');
+  record('exam', c.id, xp);
   setFinished(true);
 };
 

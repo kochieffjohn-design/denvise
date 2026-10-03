@@ -7,4 +7,3 @@ export { EMERGENCIES, getEmergencyById, type Emergency, type EmergencyGroup, typ
 export { PATIENTS } from './patients';
 export { EXTRA_TOOLS, PROCEDURE_SPECIALTIES, PROCEDURES } from './procedures';
 export { getChecklistItems, getStationById, STATIONS, type ChecklistGroup, type Station, type StationStep } from './stationsData';
-export { addXP, getDiagDone, getStats, markDiagDone, resetDiagDone, resetStats, type Stats } from './xpStorage';

@@ -8,7 +8,7 @@ import { useOnline } from '../../hooks/useOnline';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { aiPost, errorText } from '../../lib/api';
 import { PATIENTS } from '../../data/clinicalData';
-import { addXP, type Stats } from '../../data/xpStorage';
+import { useProgress } from '../../lib/progress';
 
 // isError — служебная плашка об ошибке, а не реплика пациента: модели не отправляется.
 type Msg = { role: 'user' | 'assistant'; content: string; isError?: boolean };
@@ -25,6 +25,7 @@ function fbStyle(note: string) {
 }
 
 export default function PatientScreen() {
+  const { record } = useProgress();
   const headerTop = useHeaderTopPadding();
   const online = useOnline();
   const [pat, setPat] = useState<typeof PATIENTS[0] | null>(null);
@@ -45,8 +46,7 @@ export default function PatientScreen() {
   const finish = () => {
     setFinished(true);
     setGainedXp(40);
-    // Коммуникационный сценарий, ближайшая существующая категория XP.
-    addXP(40, 'comm').then((stats: Stats) => setStreak(stats.streak)).catch(() => {});
+    setStreak(record('patient', pat?.id ?? null, 40).streak);
   };
 
   const send = async () => {
