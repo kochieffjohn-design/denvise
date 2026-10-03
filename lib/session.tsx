@@ -6,7 +6,10 @@ import { CORE_URL } from '../constants/config';
 // вход. От него зависит, какой экран показать: онбординг → вход → приложение
 // (см. app/_layout.tsx). Вход работает только если задан адрес ядра (CORE_URL).
 
-export type User = { id: string; email: string; name: string };
+/** Тариф: бесплатный или Pro до указанного момента (ISO). */
+export type Access = { plan: 'free' | 'pro'; proUntil: string | null };
+
+export type User = { id: string; email: string; name: string; access?: Access };
 
 const ONBOARDED_KEY = 'denvise_onboarded';
 // Последний известный пользователь — чтобы без сети приложение открывалось
@@ -25,6 +28,8 @@ type Session = {
   /** Войти по коду из письма. */
   verifyCode: (email: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Активировать промокод — даёт Pro на срок кода. */
+  redeemPromo: (code: string) => Promise<Access>;
 };
 
 const SessionContext = createContext<Session | null>(null);
@@ -67,7 +72,9 @@ async function core<T>(path: string, body?: unknown): Promise<T> {
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const code = res.status === 429 ? 'RATE_LIMITED' : (data?.code as string) || `HTTP_${res.status}`;
-    throw new AuthError(code, MESSAGES[code] || 'Что-то пошло не так. Попробуйте ещё раз.');
+    // Ошибки самого ядра (не входа) приходят готовым текстом в поле error
+    const own = typeof data?.error === 'string' ? (data.error as string) : null;
+    throw new AuthError(code, own || MESSAGES[code] || 'Что-то пошло не так. Попробуйте ещё раз.');
   }
   return data as T;
 }
@@ -122,6 +129,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       async signOut() {
         await core('/api/auth/sign-out', {}).catch(() => {});
         await remember(null);
+      },
+      async redeemPromo(code) {
+        const { access } = await core<{ access: Access }>('/api/promo/redeem', { code });
+        if (user) await remember({ ...user, access });
+        return access;
       },
     }),
     [loading, onboarded, user, remember]

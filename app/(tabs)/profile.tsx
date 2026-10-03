@@ -1,10 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TouchableOpacity } from '../../components/Touchable';
 import { C } from '../../constants/Colors';
 import { useOfflineStatus } from '../../hooks/useOfflineStatus';
-import { authEnabled, useSession } from '../../lib/session';
+import { authEnabled, useSession, type Access } from '../../lib/session';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { useProgress } from '../../lib/progress';
 
@@ -54,6 +54,66 @@ function Medallion({ level, size = 62, locked = false }: { level: typeof LEVELS[
         )}
       </LinearGradient>
     </View>
+  );
+}
+
+/** «Pro до 3 января 2027» / «Бесплатный». */
+function planText(access: Access | undefined): string {
+  if (access?.plan !== 'pro' || !access.proUntil) return 'Бесплатный';
+  const d = new Date(access.proUntil).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return `Pro до ${d.replace(/s*г.$/, '')}`;
+}
+
+/** Промокод: поле ввода по кнопке, ответ ядра — под полем. */
+function PromoForm() {
+  const { redeemPromo } = useSession();
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const submit = async () => {
+    if (!code.trim() || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const access = await redeemPromo(code);
+      setMsg({ ok: true, text: `Готово! ${planText(access)}.` });
+      setCode('');
+      setOpen(false);
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : 'Не удалось активировать промокод.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      {open ? (
+        <View style={s.promoRow}>
+          <TextInput
+            style={s.promoInput}
+            value={code}
+            onChangeText={setCode}
+            placeholder="DENV-XXXX-XXXX"
+            placeholderTextColor={C.n400}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoFocus
+            onSubmitEditing={submit}
+          />
+          <TouchableOpacity style={[s.promoBtn, (!code.trim() || busy) && { opacity: 0.5 }]} onPress={submit} disabled={!code.trim() || busy}>
+            <Text style={s.promoBtnT}>{busy ? '…' : 'Активировать'}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={s.signOutBtn} onPress={() => { setOpen(true); setMsg(null); }}>
+          <Text style={s.signOutBtnT}>Ввести промокод</Text>
+        </TouchableOpacity>
+      )}
+      {msg && <Text style={[s.promoMsg, { color: msg.ok ? C.success : C.danger }]}>{msg.text}</Text>}
+    </>
   );
 }
 
@@ -188,6 +248,11 @@ export default function ProfileScreen() {
                 <Text style={s.infoLabel}>Почта</Text>
                 <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>{user.email}</Text>
               </View>
+              <View style={s.infoRow}>
+                <Text style={s.infoLabel}>Тариф</Text>
+                <Text style={[s.infoValue, user.access?.plan === 'pro' && { color: C.primary }]}>{planText(user.access)}</Text>
+              </View>
+              <PromoForm />
               <TouchableOpacity style={s.signOutBtn} onPress={signOut}>
                 <Text style={s.signOutBtnT}>Выйти</Text>
               </TouchableOpacity>
@@ -346,6 +411,14 @@ const s = StyleSheet.create({
   resetBtnT: { fontSize: 13, color: C.n500, fontWeight: '500' },
   signOutBtn: { marginTop: 4, borderRadius: 12, paddingVertical: 11, alignItems: 'center', backgroundColor: C.light },
   signOutBtnT: { fontSize: 14, color: C.primary, fontWeight: '700' },
+  promoRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  promoInput: {
+    flex: 1, borderRadius: 12, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 15, fontWeight: '600', color: C.n900, backgroundColor: C.bg, letterSpacing: 1,
+  },
+  promoBtn: { borderRadius: 12, paddingHorizontal: 14, justifyContent: 'center', backgroundColor: C.primary },
+  promoBtnT: { fontSize: 14, color: '#fff', fontWeight: '700' },
+  promoMsg: { fontSize: 13, lineHeight: 18 },
   levelsDesc: { fontSize: 13, color: C.n500, lineHeight: 19, textAlign: 'center' },
   xpGuide: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8 },
   xpGuideTitle: { fontSize: 14, fontWeight: '700', color: C.n900, marginBottom: 4 },

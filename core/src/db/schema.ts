@@ -2,3 +2,4 @@
 // генерирует Better Auth: npm run auth:schema → auth-schema.ts.
 export * from './auth-schema.js';
 export * from './progress-schema.js';
+export * from './access-schema.js';

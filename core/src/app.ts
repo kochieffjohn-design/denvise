@@ -5,6 +5,7 @@ import type { Db } from './db/index.js';
 import { type Env, webOrigins } from './env.js';
 import { AI_LIMIT, forward, type GatewayConfig, UserRateLimiter } from './gateway.js';
 import { registerProgress } from './progress.js';
+import { getAccess, registerAccess } from './access.js';
 import { sql } from 'drizzle-orm';
 
 type Session = Awaited<ReturnType<Auth['api']['getSession']>>;
@@ -47,11 +48,11 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
   });
 
   // Текущий пользователь — то, что нужно приложению при запуске
-  app.get('/api/me', (c) => {
+  app.get('/api/me', async (c) => {
     const s = c.get('session');
     if (!s) return c.json({ error: 'Не выполнен вход' }, 401);
     const { id, email, name, createdAt } = s.user;
-    return c.json({ user: { id, email, name, createdAt } });
+    return c.json({ user: { id, email, name, createdAt, access: await getAccess(db, id) } });
   });
 
   // ДентИИ и ИИ-Пациент — только после входа, через шлюз (см. gateway.ts)
@@ -71,6 +72,9 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
 
   // Прогресс: пройденные задания, опыт, серия дней
   registerProgress(app, db);
+
+  // Доступ к Pro: промокоды
+  registerAccess(app, db);
 
   return app;
 }
