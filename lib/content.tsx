@@ -37,13 +37,16 @@ const ProContext = createContext<ProState>({ isPro: false, content: null, loadin
 export const useProContent = () => useContext(ProContext);
 
 export function ProContentProvider({ children }: { children: ReactNode }) {
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const isPro = authEnabled && hasPro(user?.access);
   const [stored, setStored] = useState<Stored | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    // Пока аккаунт загружается, Pro ещё неизвестен — ничего не трогаем,
+    // иначе сохранённые для работы без сети Pro-кейсы удалились бы при каждом запуске
+    if (sessionLoading) return;
     if (!isPro) {
       // Pro закончился или вышли из аккаунта — Pro-контент на устройстве не храним
       setStored(null);
@@ -82,7 +85,7 @@ export function ProContentProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isPro, user?.id]);
+  }, [sessionLoading, isPro, user?.id]);
 
   const value = useMemo(() => ({ isPro, content: isPro ? (stored?.content ?? null) : null, loading }), [isPro, stored, loading]);
   return <ProContext.Provider value={value}>{children}</ProContext.Provider>;
