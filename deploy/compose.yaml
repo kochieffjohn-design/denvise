@@ -12,6 +12,8 @@ services:
       - "443:443/udp"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web/prod:/srv/web-prod:ro # сайт denvise.ru (deploy/deploy-web.sh)
+      - ./web/test:/srv/web-test:ro # сайт test.denvise.ru
       - caddy_data:/data # сертификаты HTTPS — переживают перезапуск
       - caddy_config:/config
 

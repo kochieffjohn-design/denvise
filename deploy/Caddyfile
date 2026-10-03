@@ -2,6 +2,39 @@
 # X-Forwarded-For с IP пользователя Caddy выставляет сам и не доверяет
 # такому заголовку от клиентов — ядро берёт из него IP для лимитов.
 
+(web) {
+	encode zstd gzip
+	file_server
+	# Приложение одностраничное: любой путь (/dentai, /profile…) — index.html
+	try_files {path} /index.html
+
+	# Файлы с хешем в имени не меняются никогда — кешируем навсегда
+	@hashed path /_expo/static/* /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+	# Остальное (страница, service worker, манифест) — всегда проверять свежесть,
+	# иначе обновления приложения застревают. Правило по исходному пути:
+	# Caddy проверяет его до подмены на index.html, поэтому «все, кроме хешей»
+	@fresh not path /_expo/static/* /assets/*
+	header @fresh Cache-Control "no-cache"
+}
+
+# Сайт: боевой — с боевым ядром, тестовый — с тестовым
+denvise.ru {
+	root * /srv/web-prod
+	import web
+}
+
+www.denvise.ru {
+	redir https://denvise.ru{uri} permanent
+}
+
+test.denvise.ru {
+	root * /srv/web-test
+	import web
+}
+
+# Ядро
 api.denvise.ru {
 	encode zstd gzip
 	reverse_proxy core:8788
