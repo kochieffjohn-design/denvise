@@ -52,7 +52,18 @@ async function sendViaPostbox(email: Email, fetchImpl: typeof fetch): Promise<vo
   if (!res.ok) throw new Error(`postbox: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
 }
 
-export async function sendEmail(email: Email, fetchImpl: typeof fetch = fetch): Promise<void> {
+// Кто узнаёт о неотправленных письмах (мониторинг, см. monitor.ts)
+let failureListener: ((reason: string) => void) | null = null;
+export function onEmailFailure(listener: ((reason: string) => void) | null): void {
+  failureListener = listener;
+}
+
+/** Отправить письмо. true — ушло (или выведено в консоль при разработке). */
+export async function sendEmail(
+  email: Email,
+  fetchImpl: typeof fetch = fetch,
+  { silent = false }: { silent?: boolean } = {}
+): Promise<boolean> {
   sentEmails.push(email);
   if (sentEmails.length > 50) sentEmails.shift();
   if (config.transport === 'postbox') {
@@ -62,12 +73,16 @@ export async function sendEmail(email: Email, fetchImpl: typeof fetch = fetch): 
       // Не роняем запрос пользователя: письмо не ушло — он попросит код ещё раз.
       // Адрес в лог не пишем (персональные данные), только домен.
       console.error(`[email] не отправлено на *@${email.to.split('@')[1]}: ${(e as Error).message}`);
+      // silent — письмо самого мониторинга: о его сбое не тревожим (иначе петля)
+      if (!silent) failureListener?.((e as Error).message);
+      return false;
     }
-    return;
+    return true;
   }
   if (process.env.NODE_ENV !== 'test') {
     console.log(`[email] → ${email.to}: ${email.subject}\n${email.text}\n`);
   }
+  return true;
 }
 
 export function otpEmail(code: string): Pick<Email, 'subject' | 'text'> {

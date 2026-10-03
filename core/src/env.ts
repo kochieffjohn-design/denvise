@@ -21,6 +21,8 @@ const Env = z.object({
   // LLM-шлюз ДентИИ и ИИ-Пациента (Railway, за рубежом) и секретный ключ ядра для него
   GATEWAY_URL: z.string().url().default('http://localhost:8787'),
   GATEWAY_KEY: z.string().min(32).optional(),
+  // Куда слать тревоги мониторинга, если недоступен шлюз (и с ним Telegram). Задан — мониторинг включён
+  ALERT_EMAIL: z.string().email().optional(),
 })
   // В проде письма с кодом входа обязаны реально уходить
   .refine((e) => e.NODE_ENV !== 'production' || e.EMAIL_TRANSPORT === 'postbox', {

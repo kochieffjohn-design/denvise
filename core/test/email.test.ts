@@ -55,7 +55,7 @@ describe('письма через Postbox', () => {
     const orig = console.error;
     console.error = (m: string) => logged.push(String(m));
     try {
-      await expect(sendEmail({ to: 'secret.person@example.com', subject: 's', text: 't' }, net.impl)).resolves.toBeUndefined();
+      await expect(sendEmail({ to: 'secret.person@example.com', subject: 's', text: 't' }, net.impl)).resolves.toBe(false); // не бросает, а сообщает, что не ушло
     } finally {
       console.error = orig;
     }
