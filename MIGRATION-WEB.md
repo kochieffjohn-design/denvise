@@ -60,6 +60,20 @@ OpenRouter (deepseek/deepseek-v4-flash)
 - **Мониторинг:** уведомления владельцу в Telegram через служебного бота (ядро, база, доступность Railway).
 - **Доступ к облаку:** утилита `yc` на компьютере владельца, вход делает владелец; платные ресурсы создаются только после его подтверждения.
 
+**Созданные ресурсы (03.10.2026, облако `cloud-cumulus-492`, каталог `default`, зона `ru-central1-b`):**
+
+| Ресурс | Имя / ID | Примечание |
+|---|---|---|
+| DNS-зона | `denvise-ru` | `denvise.ru` делегирован на `ns1/ns2.yandexcloud.net` |
+| ВМ | `denvise-core` (`epdba4hscjt9270k7d4b`) | standard-v3, 2×20% vCPU, 2 ГБ, 20 ГБ HDD, Ubuntu 24.04, сервисный аккаунт `denvise-core` |
+| Статический IP | `denvise-core-ip` — 111.88.150.223 | защита от удаления; `api` и `test-api.denvise.ru` |
+| PostgreSQL 18 | `denvise-pg` (`c9q3ndn58uk462lf1d8e`) | b2.medium, 10 ГБ SSD, без публичного IP, бэкапы 7 дней, защита от удаления; базы `denvise` и `denvise_test` со своими пользователями |
+| Группы безопасности | `denvise-vm` (22/80/443), `denvise-pg` (6432 только с ВМ) | |
+| Сервисные аккаунты | `denvise-core` (postbox.sender), `denvise-postbox-admin` (postbox.editor) | |
+| Postbox | адрес `denvise.ru` | DKIM (Easy DKIM), SPF, DMARC `p=none` |
+
+Секреты (пароли БД, ключи сессий) — на компьютере владельца в `%USERPROFILE%\.denvise-secrets` и на ВМ в `/opt/denvise/env/*.env` (600). SSH-ключ — `~/.ssh/denvise_vm`. Cookie сессий у боевого и тестового ядра раздельные (без общего домена).
+
 ## 3. Авторизация
 
 - Вход обязателен, без паролей: код на email, Яндекс ID, VK ID, Telegram Login. Реализация: Better Auth + собственный обработчик Telegram.
