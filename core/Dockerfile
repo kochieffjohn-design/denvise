@@ -9,7 +9,10 @@ WORKDIR /app
 
 # Корневой сертификат Yandex Cloud: Managed PostgreSQL принимает только TLS,
 # ядро проверяет сертификат базы (sslmode=verify-full в DATABASE_URL)
-ADD --chmod=644 https://storage.yandexcloud.net/cloud-certs/CA.pem /app/yandex-ca.pem
+# (chmod отдельной командой: Docker из пакетов Ubuntu собирает без BuildKit,
+# а ADD с URL оставляет файл доступным только root)
+ADD https://storage.yandexcloud.net/cloud-certs/CA.pem /app/yandex-ca.pem
+RUN chmod 644 /app/yandex-ca.pem
 
 COPY package.json package-lock.json ./
 # --omit=peer: не ставить необязательные «парные» пакеты better-auth (vitest и т.п.)
