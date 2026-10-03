@@ -7,6 +7,7 @@ import { PATIENTS } from '../data/patients';
 import { checkCitations } from './citations';
 import { getChunkByNumber, getKnowledgeBaseStats } from './knowledgeBase';
 import { askDentAI, askWithSystemPrompt, type ChatMessage } from './llm';
+import { monitorEnabled, notify, reportLlm, startMonitor } from './monitor';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 8787;
@@ -116,6 +117,7 @@ app.post('/api/dentai/ask', limiter, async (req, res) => {
     const lastMessage = history[history.length - 1]!;
 
     const result = await askDentAI(history);
+    reportLlm(true);
     const checked = checkCitations(result.answer);
 
     if (checked.invalidNumbers.length > 0) {
@@ -146,6 +148,7 @@ app.post('/api/dentai/ask', limiter, async (req, res) => {
     });
   } catch (err) {
     console.error('[dentai/ask] error:', err);
+    reportLlm(false);
     res.status(502).json({ error: 'Не удалось получить ответ от ИИ-агента. Попробуйте ещё раз через минуту.' });
   }
 });
@@ -181,14 +184,27 @@ app.post('/api/patient/chat', limiter, async (req, res) => {
       history,
       { maxTokens: 900, temperature: 0.6 }
     );
+    reportLlm(true);
     res.json({ answer: result.answer, model: result.model, usage: result.usage });
   } catch (err) {
     console.error('[patient/chat] error:', err);
+    reportLlm(false);
     res.status(502).json({ error: 'Не удалось получить ответ от ИИ-пациента. Попробуйте ещё раз через минуту.' });
   }
 });
 
+// Тревоги ядра владельцу: из Yandex Cloud Telegram недоступен, ядро шлёт их сюда
+app.post('/internal/alert', async (req, res) => {
+  if (!fromCore(req)) return res.status(403).json({ error: 'Только для ядра.' });
+  const text = req.body?.text;
+  if (typeof text !== 'string' || !text.trim() || text.length > 2000) return res.status(400).json({ error: 'Нужен text.' });
+  if (!monitorEnabled) return res.status(503).json({ error: 'Telegram не настроен.' });
+  const sent = await notify(`🖥 Ядро: ${text}`);
+  res.status(sent ? 200 : 502).json({ ok: sent });
+});
+
 app.listen(PORT, () => {
+  startMonitor();
   const stats = getKnowledgeBaseStats();
   console.log(`ДентИИ сервер запущен на порту ${PORT}`);
   console.log(`База знаний: ${stats.totalChunks} источников (~${stats.approxTokens} токенов)`);
