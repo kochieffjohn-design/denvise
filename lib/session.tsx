@@ -94,18 +94,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     (async () => {
       const [ob, cached] = await Promise.all([AsyncStorage.getItem(ONBOARDED_KEY), AsyncStorage.getItem(USER_KEY)]);
       setOnboarded(!!ob);
-      if (authEnabled) {
+      if (!authEnabled) {
+        setLoading(false);
+        return;
+      }
+      const check = async () => {
         try {
           const me = await core<{ user: User }>('/api/me');
           await remember(me.user);
         } catch (e) {
-          // 401 — вход действительно нужен. Нет сети или сбой сервера — пускаем
-          // по последнему известному входу, чтобы не выкидывать из аккаунта
+          // 401 — вход действительно нужен. Нет сети или сбой сервера — остаёмся
+          // в аккаунте по последнему известному входу
           if (e instanceof AuthError && e.code === 'HTTP_401') await remember(null);
-          else if (cached) setUser(JSON.parse(cached));
         }
+      };
+      if (cached) {
+        // Уже входили на этом устройстве — открываемся сразу, вход проверяем в фоне.
+        // Иначе без сети на iPhone запрос висит до тайм-аута, а приложение — на заставке
+        setUser(JSON.parse(cached));
+        setLoading(false);
+        void check();
+      } else {
+        await check();
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, [remember]);
 
