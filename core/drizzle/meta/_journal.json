@@ -22,6 +22,13 @@
       "when": 1791059197286,
       "tag": "0002_access",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791063182925,
+      "tag": "0003_daily_usage",
+      "breakpoints": true
     }
   ]
 }

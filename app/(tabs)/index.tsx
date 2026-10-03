@@ -8,15 +8,18 @@ import { C, SPECIALTY } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { shadowCard } from '../../constants/shadows';
 import { COMM_SCENARIOS, CONSULT_SECTIONS, DIAG_CASES, EMERGENCIES, EXAM_CASES, PATIENTS, PROCEDURE_SPECIALTIES, PROCEDURES, STATIONS } from '../../data/clinicalData';
+import { PRO_COMM, PRO_CONSULT, PRO_DIAG, PRO_PROCEDURES } from '../../data/proCatalog';
 import { useProgress } from '../../lib/progress';
 import {
   CASE_FORMS, CONDITION_FORMS, DIRECTION_FORMS, plural, PROTOCOL_FORMS, PSYCHOTYPE_FORMS, SCENARIO_FORMS, SCRIPT_FORMS, STATION_FORMS,
 } from '../../lib/plural';
 
-// Счётчики — из данных, чтобы не расходились с контентом
-const TOTAL_DIAG = DIAG_CASES.length;
-const TOTAL_COMM = COMM_SCENARIOS.length;
-const TOTAL_SCRIPTS = CONSULT_SECTIONS.reduce((n, sec) => n + sec.scripts.length, 0);
+// Счётчики — из данных, чтобы не расходились с контентом (вместе с Pro-кейсами)
+const TOTAL_DIAG = DIAG_CASES.length + PRO_DIAG.length;
+const TOTAL_COMM = COMM_SCENARIOS.length + PRO_COMM.length;
+const TOTAL_SCRIPTS =
+  CONSULT_SECTIONS.reduce((n, sec) => n + sec.scripts.length, 0) + PRO_CONSULT.reduce((n, sec) => n + sec.scriptsCount, 0);
+const TOTAL_PROCEDURES = PROCEDURES.length + PRO_PROCEDURES.length;
 
 const MODULES = [
   {
@@ -43,7 +46,7 @@ const MODULES = [
     id: 'reception',
     title: 'Приём',
     desc: plural(PROCEDURE_SPECIALTIES.length, DIRECTION_FORMS),
-    tag: plural(PROCEDURES.length, PROTOCOL_FORMS),
+    tag: plural(TOTAL_PROCEDURES, PROTOCOL_FORMS),
     mciIcon: 'tooth-outline',
     color: SPECIALTY.therapy.solid,
     bg: SPECIALTY.therapy.tint,

@@ -5,6 +5,11 @@ import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { DIAG_CASES } from '../../data/clinicalData';
+import { METHOD_RESULTS, REQUIRED_METHODS } from '../../data/diagMethods';
+import { PRO_DIAG } from '../../data/proCatalog';
+import { ProBadge } from '../../components/ProBadge';
+import { onLockedPress, useProContent } from '../../lib/content';
+import { useRouter } from 'expo-router';
 import { useProgress } from '../../lib/progress';
 
 type Level = 1 | 2 | 3;
@@ -22,164 +27,10 @@ const METHODS = [
   { id: 'palpation', label: 'Пальпация', key: 'palpation' },
 ];
 
-const REQUIRED_METHODS: Record<string, string[]> = {
-  d1: ['probing', 'thermo', 'eod'],
-  d2: ['probing', 'thermo', 'eod', 'xray'],
-  d3: ['probing', 'percussion', 'palpation', 'xray'],
-  d4: ['probing', 'thermo', 'eod'],
-  d5: ['probing', 'thermo', 'eod'],
-  d6: ['probing', 'thermo', 'eod', 'xray'],
-  d7: ['probing', 'thermo', 'eod', 'xray'],
-  d8: ['probing', 'eod', 'xray'],
-  d9: ['percussion', 'palpation', 'eod', 'xray'],
-  d10: ['probing', 'percussion', 'palpation', 'eod', 'xray'],
-  d11: ['probing', 'percussion', 'palpation', 'xray'],
-  d12: ['probing', 'thermo', 'eod'],
-  d13: ['percussion', 'palpation', 'eod', 'xray'],
-  d14: ['probing', 'thermo', 'eod', 'xray'],
-  d15: ['probing', 'thermo', 'eod', 'xray'],
-  d16: ['probing', 'percussion', 'palpation'],
-  d17: ['percussion', 'palpation', 'eod', 'xray'],
-};
 
-const METHOD_RESULTS: Record<string, Record<string, string>> = {
-  d1: {
-    probing: 'Зондирование: поверхность эмали сохранена, зонд скользит, полости нет.',
-    thermo: 'Термодиагностика: лёгкая оскомина от холодного, исчезает сразу.',
-    eod: 'ЭОД: нет данных (не информативна для стадии пятна).',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: полости не определяется, дентин не вовлечён.',
-  },
-  d2: {
-    probing: 'Зондирование: болезненно по дну кариозной полости, зонд задерживается.',
-    thermo: 'Термодиагностика: холод — короткая боль, проходит сразу после устранения.',
-    eod: 'ЭОД: 6 мкА (норма).',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: кариозная полость в пределах дентина, периапекс без изменений.',
-  },
-  d3: {
-    probing: 'Зондирование: болезненно в одной точке на дне, полость не вскрыта.',
-    thermo: 'Термодиагностика: от холодного резкая боль, сохраняется после устранения (затяжная реакция).',
-    eod: 'ЭОД: 20–40 мкА (снижена).',
-    percussion: 'Перкуссия: безболезненна или слабоположительна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: глубокая полость близко к рогу пульпы, периапекс без изменений.',
-  },
-  d4: {
-    probing: 'Зондирование: зонд скользит, кариозной полости нет.',
-    thermo: 'Термодиагностика: возможна лёгкая оскомина от сладкого и холодного.',
-    eod: 'ЭОД: нет данных (не информативна для стадии пятна).',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: полости не определяется.',
-  },
-  d5: {
-    probing: 'Зондирование: поверхность эмали плотная, зонд скользит.',
-    thermo: 'Термодиагностика: без боли.',
-    eod: 'ЭОД: 3 мкА (норма).',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: структура эмали неоднородная, дентин без патологии.',
-  },
-  d6: {
-    probing: 'Зондирование: глубокая полость, сообщается с пульповой камерой, болезненно.',
-    thermo: 'Термодиагностика: ноющая боль от горячего, кратковременная.',
-    eod: 'ЭОД: 35–50 мкА.',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: глубокая полость, сообщается с камерой, пульповая камера сужена (кальцификация).',
-  },
-  d7: {
-    probing: 'Зондирование: поверхностно безболезненно (некроз), в глубине болезненно. Гнилостный запах.',
-    thermo: 'Термодиагностика: ноющая боль от горячего, от холодного реакции нет.',
-    eod: 'ЭОД: 60–90 мкА.',
-    percussion: 'Перкуссия: слабоположительная.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: широкое сообщение с камерой, расширение периодонтальной щели.',
-  },
-  d8: {
-    probing: 'Зондирование: из полости разрастается мягкая розовая ткань, поверхностно малоболезненно, ножка глубоко — болезненно и кровоточит.',
-    thermo: 'Термодиагностика: незначительная боль от раздражителей.',
-    eod: 'ЭОД: 40–60 мкА.',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: обширная полость, сообщается с камерой, апексы не закрыты.',
-  },
-  d9: {
-    probing: 'Зондирование: безболезненно (пульпа некротизирована).',
-    thermo: 'Термодиагностика: нет реакции (пульпа мертва).',
-    eod: 'ЭОД: >100 мкА.',
-    percussion: 'Перкуссия: РЕЗКО болезненна — проводить осторожно!',
-    palpation: 'Пальпация: слизистая у верхушки отёчна, гиперемирована, резко болезненна.',
-    xray: 'Рентген: расширение периодонтальной щели, начальные изменения кости.',
-  },
-  d10: {
-    probing: 'Зондирование: устья безболезненны, гнилостный запах.',
-    thermo: 'Термодиагностика: нет реакции (некроз).',
-    eod: 'ЭОД: >100 мкА.',
-    percussion: 'Перкуссия: слабоболезненна.',
-    palpation: 'Пальпация: слизистая слабогиперемирована, симптом вазопареза.',
-    xray: 'Рентген: очаг разрежения с НЕЧЁТКИМИ контурами («языки пламени») у апекса.',
-  },
-  d11: {
-    probing: 'Зондирование пародонтальным зондом: карманы 4–6 мм, кровоточивость.',
-    thermo: 'Термодиагностика: кратковременная боль от холодного (гиперестезия шеек).',
-    eod: 'ЭОД: 5 мкА (норма — пульпа витальна).',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: подвижность зубов I–II степени.',
-    xray: 'Рентген: резорбция межальвеолярных перегородок на 1/3–1/2 длины корней.',
-  },
-  d12: {
-    probing: 'Зондирование: V-образные дефекты у шеек, стенки плотные, блестящие, зонд скользит.',
-    thermo: 'Термодиагностика: кратковременная боль от холодного, проходит сразу.',
-    eod: 'ЭОД: 4 мкА (норма).',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: клиническая диагностика, рентген не информативен.',
-  },
-  d13: {
-    probing: 'Зондирование: безболезненно.',
-    thermo: 'Термодиагностика: нет реакции.',
-    eod: 'ЭОД: >100 мкА.',
-    percussion: 'Перкуссия: резко болезненна у причинного зуба.',
-    palpation: 'Пальпация по переходной складке: флюктуация, резкая болезненность, слизистая гиперемирована.',
-    xray: 'Рентген: расширение периодонтальной щели, утолщение надкостницы.',
-  },
-  d14: {
-    probing: 'Зондирование: безболезненно у всех зубов.',
-    thermo: 'Термодиагностика: холодовая проба положительна (пульпа жива у всех!).',
-    eod: 'ЭОД: 3–5 мкА у всех зубов 25, 26, 27 — норма.',
-    percussion: 'Перкуссия: безболезненна у всех.',
-    palpation: 'Пальпация: без особенностей.',
-    xray: 'Рентген: зубы 25, 26, 27 — периапекс интактен. Пазуха слева: уровень жидкости.',
-  },
-  d15: {
-    probing: 'Зондирование: безболезненно.',
-    thermo: 'Термодиагностика: боль от раздражителей отсутствует.',
-    eod: 'ЭОД: 4–5 мкА у оставшихся зубов — норма.',
-    percussion: 'Перкуссия: безболезненна.',
-    palpation: 'Пальпация: триггерные зоны на коже лица — лёгкое прикосновение провоцирует приступ.',
-    xray: 'Рентген: все периапикальные области без патологии.',
-  },
-  d16: {
-    probing: 'Зондирование: множественные округлые эрозии 1–5 мм, болезненны при касании.',
-    thermo: 'Термодиагностика: не применяется.',
-    eod: 'ЭОД: не применяется.',
-    percussion: 'Перкуссия: безболезненна (зубы не причина).',
-    palpation: 'Пальпация: регионарные лимфоузлы увеличены и болезненны. Десна ярко-красная.',
-    xray: 'Рентген: не показан (заболевание слизистой).',
-  },
-  d17: {
-    probing: 'Зондирование: не информативно.',
-    thermo: 'Термодиагностика: не применяется.',
-    eod: 'ЭОД: не применяется.',
-    percussion: 'Перкуссия: болезненна у соседних зубов (реакция кости).',
-    palpation: 'Пальпация: разлитой болезненный отёк нескольких областей, онемение нижней губы и подбородка (симптом Венсана).',
-    xray: 'Рентген: деструкция костной ткани в области лунки, нечёткость контуров.',
-  },
-};
+// Обследования: у Pro-кейсов — в самом кейсе (из ядра), у бесплатных — в data/diagMethods.ts
+const requiredOf = (c: { id: string }): string[] => (c as any).requiredMethods ?? REQUIRED_METHODS[c.id] ?? [];
+const resultsOf = (c: { id: string }): Record<string, string> => (c as any).methodResults ?? METHOD_RESULTS[c.id] ?? {};
 
 const DIAG_DEPTH: Record<Phase, number> = { list: 0, complaint: 1, methods: 2, diagnosis: 3, result: 4 };
 
@@ -198,7 +49,10 @@ export default function DiagScreen() {
   const { stats, record } = useProgress();
   const donePersisted = stats.diagDone;
 
-  const cases = DIAG_CASES.filter(c => c.level === lvl);
+  const pro = useProContent();
+  const router = useRouter();
+  const cases = [...DIAG_CASES, ...((pro.content?.diag ?? []) as typeof DIAG_CASES)].filter(c => c.level === lvl);
+  const locked = pro.content ? [] : PRO_DIAG.filter(c => c.level === lvl);
 
   const startCase = (c: typeof DIAG_CASES[0]) => {
     setActive(c);
@@ -212,7 +66,7 @@ export default function DiagScreen() {
 
   const applyMethod = (methodId: string) => {
     if (!active || selectedMethods.includes(methodId)) return;
-    const result = METHOD_RESULTS[active.id]?.[methodId] || 'Данных нет.';
+    const result = resultsOf(active)[methodId] || 'Данных нет.';
     setSelectedMethods(m => [...m, methodId]);
     setMethodResults(r => ({ ...r, [methodId]: result }));
   };
@@ -221,7 +75,7 @@ export default function DiagScreen() {
     if (!active || !selDiag) return;
     const correct = active.questions[0];
     const isCorrect = selDiag === correct.options[correct.correct];
-    const required = REQUIRED_METHODS[active.id] || [];
+    const required = requiredOf(active);
     const usedRequired = selectedMethods.filter(m => required.includes(m)).length;
     const usedExtra = selectedMethods.filter(m => !required.includes(m)).length;
     const methodScore = Math.max(0, Math.round(usedRequired / required.length * 30) - usedExtra * 5);
@@ -252,7 +106,7 @@ export default function DiagScreen() {
   if (phase === 'result' && active) {
     const d = done[active.id];
     const correct = active.questions[0];
-    const required = REQUIRED_METHODS[active.id] || [];
+    const required = requiredOf(active);
     const missed = required.filter(m => !selectedMethods.includes(m));
     return t(
       <View style={s.container}>
@@ -287,7 +141,7 @@ export default function DiagScreen() {
                     <Text style={s.missedDot}>·</Text>
                     <View style={{ flex: 1 }}>
                       <Text style={s.missedLabel}>{method?.label}</Text>
-                      <Text style={s.missedResult}>{METHOD_RESULTS[active.id]?.[m]}</Text>
+                      <Text style={s.missedResult}>{resultsOf(active)[m]}</Text>
                     </View>
                   </View>
                 );
@@ -383,7 +237,7 @@ export default function DiagScreen() {
 
   // ── МЕТОДЫ ОБСЛЕДОВАНИЯ ──
   if (phase === 'methods' && active) {
-    const required = REQUIRED_METHODS[active.id] || [];
+    const required = requiredOf(active);
     return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
@@ -538,6 +392,15 @@ export default function DiagScreen() {
               </TouchableOpacity>
             );
           })}
+          {locked.map(c => (
+            <TouchableOpacity key={c.id} style={[s.caseCard, s.caseLocked]} onPress={() => onLockedPress(pro, () => router.push('/profile'))} activeOpacity={0.7}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={s.caseName}>Пациент {c.patient}</Text>
+                <ProBadge />
+              </View>
+              <Text style={s.caseArrow}>→</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -545,6 +408,7 @@ export default function DiagScreen() {
 }
 
 const s = StyleSheet.create({
+  caseLocked: { opacity: 0.75 },
   container: { flex: 1, backgroundColor: C.bg },
   hdr: {
     backgroundColor: C.dark,

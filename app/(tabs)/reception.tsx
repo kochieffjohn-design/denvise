@@ -6,6 +6,10 @@ import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { PROCEDURE_SPECIALTIES, PROCEDURES } from '../../data/clinicalData';
+import { useRouter } from 'expo-router';
+import { ProBadge } from '../../components/ProBadge';
+import { PRO_PROCEDURES } from '../../data/proCatalog';
+import { onLockedPress, useProContent } from '../../lib/content';
 
 type Proc = typeof PROCEDURES[0];
 
@@ -51,13 +55,19 @@ function ProcIcon({ name }: { name: string }) {
 }
 
 export default function ReceptionScreen() {
+  const pro = useProContent();
+  const router = useRouter();
+  const procedures: Proc[] = [...PROCEDURES, ...((pro.content?.procedures ?? []) as Proc[])];
+  const lockedAll = pro.content ? [] : PRO_PROCEDURES;
   const headerTop = useHeaderTopPadding();
   const [activeTag, setActiveTag] = useState('Все');
   const [active, setActive] = useState<Proc | null>(null);
   const [step, setStep] = useState(0);
   const [tab, setTab] = useState<'steps' | 'tools'>('steps');
 
-  const filtered = PROCEDURES.filter(p => {
+  const byTag = (p: { name: string }) => activeTag === 'Все' || ICONS[p.name]?.tag === activeTag;
+  const locked = lockedAll.filter(byTag);
+  const filtered = procedures.filter(p => {
     const ic = ICONS[p.name];
     return activeTag === 'Все' || ic?.tag === activeTag;
   });
@@ -149,7 +159,7 @@ export default function ReceptionScreen() {
     <View style={s.container}>
       <View style={[s.hdr, { paddingTop: headerTop }]}>
         <Text style={s.hdrTitle}>Приём у доктора</Text>
-        <Text style={s.hdrSub}>{PROCEDURES.length} протоколов</Text>
+        <Text style={s.hdrSub}>{PROCEDURES.length + PRO_PROCEDURES.length} протоколов</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -179,6 +189,21 @@ export default function ReceptionScreen() {
                   <Ionicons name="list-outline" size={12} color={C.muted} />
                   <Text style={s.stepsCountT}>{p.steps.length} шагов</Text>
                 </View>
+              </TouchableOpacity>
+            );
+          })}
+          {locked.map(p => {
+            const ic = ICONS[p.name];
+            return (
+              <TouchableOpacity key={p.name} style={[s.card, { opacity: 0.75 }]} onPress={() => onLockedPress(pro, () => router.push('/profile'))} activeOpacity={0.75}>
+                <ProcIcon name={p.name} />
+                <Text style={s.cardName} numberOfLines={2}>{p.name}</Text>
+                {ic && (
+                  <View style={[s.cardTag, { backgroundColor: ic.bg }]}>
+                    <Text style={[s.cardTagT, { color: ic.color }]}>{ic.tag}</Text>
+                  </View>
+                )}
+                <ProBadge />
               </TouchableOpacity>
             );
           })}

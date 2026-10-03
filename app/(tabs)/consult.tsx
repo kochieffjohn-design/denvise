@@ -6,8 +6,16 @@ import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { CONSULT_SECTIONS, GLOSSARY, type Script, type Section } from '../../data/clinicalData';
+import { useRouter } from 'expo-router';
+import { ProBadge } from '../../components/ProBadge';
+import { PRO_CONSULT } from '../../data/proCatalog';
+import { onLockedPress, useProContent } from '../../lib/content';
 
 export default function ConsultScreen() {
+  const pro = useProContent();
+  const router = useRouter();
+  const sections: Section[] = [...CONSULT_SECTIONS, ...(pro.content?.consult ?? [])];
+  const locked = pro.content ? [] : PRO_CONSULT;
   const headerTop = useHeaderTopPadding();
   const [tab, setTab] = useState<'scripts' | 'glossary'>('scripts');
   const [activeSection, setActiveSection] = useState<Section | null>(null);
@@ -24,7 +32,7 @@ export default function ConsultScreen() {
   const t = useScreenTransition(activeScript ? `script-${activeScript.title}` : activeSection ? `section-${activeSection.title}` : `list-${tab}`, activeScript ? 2 : activeSection ? 1 : 0);
 
   if (activeScript) {
-    const sec = CONSULT_SECTIONS.find(s => s.scripts.find(sc => sc.id === activeScript.id));
+    const sec = sections.find(s => s.scripts.find(sc => sc.id === activeScript.id));
     return t(
       <View style={s.container}>
         <View style={[s.hdr, { paddingTop: headerTop }]}>
@@ -149,7 +157,7 @@ export default function ConsultScreen() {
 
       {tab === 'scripts' && (
         <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }} showsVerticalScrollIndicator={false}>
-          {CONSULT_SECTIONS.map(sec => (
+          {sections.map(sec => (
             <TouchableOpacity key={sec.id} style={s.sectionCard}
               onPress={() => setActiveSection(sec)} activeOpacity={0.75}>
               <View style={[s.sectionIcon, { backgroundColor: sec.bg }]}>
@@ -160,6 +168,19 @@ export default function ConsultScreen() {
                 <Text style={s.sectionSub}>{sec.scripts.length} скриптов</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={C.muted} />
+            </TouchableOpacity>
+          ))}
+          {locked.map(sec => (
+            <TouchableOpacity key={sec.id} style={[s.sectionCard, { opacity: 0.75 }]}
+              onPress={() => onLockedPress(pro, () => router.push('/profile'))} activeOpacity={0.75}>
+              <View style={[s.sectionIcon, { backgroundColor: sec.bg }]}>
+                <Ionicons name={sec.icon as any} size={24} color={sec.color} />
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={s.sectionTitle}>{sec.title}</Text>
+                <Text style={s.sectionSub}>{sec.scriptsCount} скриптов</Text>
+              </View>
+              <ProBadge />
             </TouchableOpacity>
           ))}
           <View style={{ height: 20 }} />

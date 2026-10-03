@@ -3,3 +3,4 @@
 export * from './auth-schema.js';
 export * from './progress-schema.js';
 export * from './access-schema.js';
+export * from './usage-schema.js';

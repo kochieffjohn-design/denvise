@@ -64,11 +64,12 @@ describe('ДентИИ и ИИ-Пациент через ядро', () => {
 
   it('ответ виден сайту: CORS с cookie для своего адреса', async () => {
     const c = await signIn('gw-cors@example.com');
-    const res = await c.send('/api/patient/chat', { method: 'POST', json: { patientId: 'p1', ...ask } });
+    const res = await c.send('/api/patient/chat', { method: 'POST', json: { patientId: 'anx', ...ask } });
     expect(res.status).toBe(200);
     expect(res.headers.get('access-control-allow-origin')).toBe(WEB);
     expect(res.headers.get('access-control-allow-credentials')).toBe('true');
     expect(calls[0]!.url).toBe('https://gateway.test/api/patient/chat');
+    expect(JSON.parse(calls[0]!.body!).patientId).toBe('anx'); // тело дошло до шлюза целиком
   });
 
   it('ошибки шлюза передаются как есть (тексты уже на русском)', async () => {
@@ -103,9 +104,9 @@ describe('ДентИИ и ИИ-Пациент через ядро', () => {
   it(`лимит на пользователя: ${AI_LIMIT.max} запросов, дальше 429; у другого — свой счёт`, async () => {
     const a = await signIn('gw-limit-a@example.com');
     for (let i = 0; i < AI_LIMIT.max; i++) {
-      expect((await a.send('/api/dentai/ask', { method: 'POST', json: ask })).status).toBe(200);
+      expect((await a.send('/api/patient/chat', { method: 'POST', json: { patientId: 'anx', ...ask } })).status).toBe(200);
     }
-    const over = await a.send('/api/patient/chat', { method: 'POST', json: ask });
+    const over = await a.send('/api/patient/chat', { method: 'POST', json: { patientId: 'anx', ...ask } });
     expect(over.status).toBe(429);
     expect((await over.json()).error).toMatch(/Слишком много запросов/);
 

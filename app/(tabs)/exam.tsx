@@ -12,6 +12,10 @@ import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { EXAM_CASES, type RecStep } from '../../data/examCases';
 import { useProgress } from '../../lib/progress';
+import { useRouter } from 'expo-router';
+import { CORE_URL } from '../../constants/config';
+import { useProContent } from '../../lib/content';
+import { authEnabled } from '../../lib/session';
 
 // ─── УТИЛИТЫ ─────────────────────────────────────────────────────────────────
 function shuffle<T>(arr: T[]): T[] {
@@ -44,6 +48,27 @@ export default function ExamScreen() {
   const [shuffSteps, setShuffSteps] = useState<RecStep[]>([]);
 
   const c = EXAM_CASES[caseIdx];
+
+  // Перед экзаменом спрашиваем ядро: без Pro — один экзамен в день
+  const pro = useProContent();
+  const router = useRouter();
+  const [started, setStarted] = useState(!authEnabled);
+  const [gateBusy, setGateBusy] = useState(false);
+  const [gateMsg, setGateMsg] = useState('');
+  const startExam = async () => {
+    if (gateBusy) return;
+    setGateBusy(true);
+    setGateMsg('');
+    try {
+      const res = await fetch(`${CORE_URL}/api/exam/start`, { method: 'POST', credentials: 'include', signal: AbortSignal.timeout(8000) });
+      if (res.ok) setStarted(true);
+      else setGateMsg((await res.json().catch(() => null))?.error || 'Не удалось начать экзамен. Попробуйте ещё раз.');
+    } catch {
+      setStarted(true); // без сети не мешаем: кейсы экзамена есть на устройстве
+    } finally {
+      setGateBusy(false);
+    }
+  };
 
   const initCase = useCallback((idx: number) => {
     setCaseIdx(idx);
@@ -113,7 +138,31 @@ export default function ExamScreen() {
   const allOrdered = c.recSteps.every(s => stepOrder[s.id] != null);
 
   // ─── ФИНАЛ ───────────────────────────────────────────────────────────────
-  const t = useScreenTransition(finished ? 'result' : `case${caseIdx}-phase${phase}`, finished ? 5 : phase, { enterOnFocus: false }); // вкладка: вход анимирует таб-бар
+  const t = useScreenTransition(!started ? 'gate' : finished ? 'result' : `case${caseIdx}-phase${phase}`, !started ? 0 : finished ? 5 : phase, { enterOnFocus: false }); // вкладка: вход анимирует таб-бар
+
+  if (!started) return t(
+    <View style={s.container}>
+      <View style={[s.hdr, { paddingTop: headerTop }]}>
+        <Text style={s.hdrT}>Экзамен</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 14, gap: 12 }}>
+        <View style={s.patBanner}>
+          <Text style={s.patName}>Случайный клинический кейс</Text>
+          <Text style={s.patComp}>Анамнез → обследование → диагноз → тактика. {EXAM_CASES.length} кейсов по разным специальностям.</Text>
+        </View>
+        {!pro.isPro && <Text style={s.gateNote}>Без Pro — один экзамен в день, с Pro — без ограничений.</Text>}
+        {!!gateMsg && <Text style={s.gateErr}>{gateMsg}</Text>}
+        <TouchableOpacity style={[s.btnP, gateBusy && { opacity: 0.6 }]} onPress={startExam} disabled={gateBusy}>
+          <Text style={s.btnPT}>{gateBusy ? '…' : 'Начать экзамен'}</Text>
+        </TouchableOpacity>
+        {!!gateMsg && !pro.isPro && (
+          <TouchableOpacity onPress={() => router.push('/profile')}>
+            <Text style={s.gateLink}>Есть промокод? Введите его в Профиле</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+    </View>
+  );
 
   if (finished) return t(
     <View style={s.container}>
@@ -174,7 +223,7 @@ export default function ExamScreen() {
           <Text style={s.sourceT}>{c.source}</Text>
         </View>
 
-        <TouchableOpacity style={s.btnP} onPress={() => initCase(Math.floor(Math.random() * EXAM_CASES.length))}>
+        <TouchableOpacity style={s.btnP} onPress={() => { initCase(Math.floor(Math.random() * EXAM_CASES.length)); setStarted(!authEnabled); }}>
           <Text style={s.btnPT}>Новый случайный кейс</Text>
         </TouchableOpacity>
         <View style={{ height: 20 }} />
@@ -426,6 +475,9 @@ const s = StyleSheet.create({
   tacticResultT: { flex: 1, fontSize: 13, color: C.text2, lineHeight: 18 },
   sourceRow: { flexDirection: 'row', gap: 6, alignItems: 'flex-start', padding: 12, backgroundColor: C.white, borderRadius: 10, borderWidth: 1, borderColor: C.border },
   sourceT: { fontSize: 11, color: C.muted, flex: 1, lineHeight: 16 },
+  gateNote: { fontSize: 13, color: C.n500, textAlign: 'center' },
+  gateErr: { fontSize: 14, color: C.danger, textAlign: 'center', lineHeight: 20 },
+  gateLink: { fontSize: 14, color: C.primary, fontWeight: '600', textAlign: 'center', paddingVertical: 6 },
   btnP: { backgroundColor: C.primary, borderRadius: 12, padding: 15, alignItems: 'center' },
   btnPT: { color: C.white, fontSize: 15, fontWeight: '700' },
 });

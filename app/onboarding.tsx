@@ -12,10 +12,12 @@ import { useSession } from '../lib/session';
 import { C } from '../constants/Colors';
 import { useHeaderTopPadding, useScreenBottomPadding } from '../hooks/useSafeLayout';
 import { DIAG_CASES } from '../data/diagCases';
+import { PRO_DIAG } from '../data/proCatalog';
 import { CASE_FORMS, plural } from '../lib/plural';
 
-// Число кейсов Диагностики на уровне — из данных, а не вписанное вручную
-const diagCount = (level: number) => plural(DIAG_CASES.filter((c) => c.level === level).length, CASE_FORMS);
+// Число кейсов Диагностики на уровне — из данных (вместе с Pro), а не вписанное вручную
+const ALL_DIAG = [...DIAG_CASES, ...PRO_DIAG];
+const diagCount = (level: number) => plural(ALL_DIAG.filter((c) => c.level === level).length, CASE_FORMS);
 
 const SLIDES = [
   {
@@ -30,7 +32,7 @@ const SLIDES = [
   },
   {
     id: 2,
-    tag: plural(DIAG_CASES.length, CASE_FORMS).toUpperCase(),
+    tag: plural(ALL_DIAG.length, CASE_FORMS).toUpperCase(),
     title: 'Учитесь на\nреальных кейсах',
     subtitle: 'Кариес, пульпит, периодонтит и редкие ловушки — три уровня сложности с разбором каждой ошибки.',
     accent: '#34d399',

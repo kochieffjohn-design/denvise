@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { C } from '../constants/Colors';
+import { ProContentProvider } from '../lib/content';
 import { ProgressProvider } from '../lib/progress';
 import { authEnabled, SessionProvider, useSession } from '../lib/session';
 
@@ -12,7 +13,9 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <SessionProvider>
         <ProgressProvider>
-          <RootStack />
+          <ProContentProvider>
+            <RootStack />
+          </ProContentProvider>
         </ProgressProvider>
       </SessionProvider>
     </GestureHandlerRootView>

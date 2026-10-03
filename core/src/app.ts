@@ -6,6 +6,8 @@ import { type Env, webOrigins } from './env.js';
 import { AI_LIMIT, forward, type GatewayConfig, UserRateLimiter } from './gateway.js';
 import { registerProgress } from './progress.js';
 import { getAccess, registerAccess } from './access.js';
+import { FREE_PATIENT_IDS, registerContent } from './content.js';
+import { DAILY_LIMITS, refundDaily, takeDaily } from './limits.js';
 import { sql } from 'drizzle-orm';
 
 type Session = Awaited<ReturnType<Auth['api']['getSession']>>;
@@ -56,14 +58,46 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
   });
 
   // ДентИИ и ИИ-Пациент — только после входа, через шлюз (см. gateway.ts)
-  for (const path of ['/api/dentai/ask', '/api/patient/chat']) {
-    app.post(path, (c) => {
-      const s = c.get('session');
-      if (!s) return c.json({ error: 'Войдите в аккаунт, чтобы пользоваться ИИ.' }, 401);
-      if (!aiLimit.take(s.user.id)) return c.json({ error: 'Слишком много запросов. Подождите несколько минут.' }, 429);
-      return forward(c, gw, path, 'POST');
-    });
-  }
+  const aiGuard = (c: any): { error: Response; userId?: never } | { error?: never; userId: string } => {
+    const s = c.get('session');
+    if (!s) return { error: c.json({ error: 'Войдите в аккаунт, чтобы пользоваться ИИ.' }, 401) };
+    if (!aiLimit.take(s.user.id)) return { error: c.json({ error: 'Слишком много запросов. Подождите несколько минут.' }, 429) };
+    return { userId: s.user.id };
+  };
+
+  // ДентИИ: вопросов в день — по тарифу. Сбой шлюза вопрос не съедает
+  app.post('/api/dentai/ask', async (c) => {
+    const g = aiGuard(c);
+    if (g.error !== undefined) return g.error;
+    const plan = (await getAccess(db, g.userId)).plan;
+    if (!(await takeDaily(db, g.userId, 'dentai', DAILY_LIMITS.dentai[plan]))) {
+      return c.json(
+        {
+          error:
+            plan === 'pro'
+              ? `Сегодня вы задали ${DAILY_LIMITS.dentai.pro} вопросов — это дневной лимит. Завтра он обновится.`
+              : `Без Pro — ${DAILY_LIMITS.dentai.free} вопроса ДентИИ в день. Завтра лимит обновится, а с Pro — до ${DAILY_LIMITS.dentai.pro} вопросов в день.`,
+          code: 'DAILY_LIMIT',
+        },
+        429
+      );
+    }
+    const res = await forward(c, gw, '/api/dentai/ask', 'POST');
+    if (res.status >= 500) await refundDaily(db, g.userId, 'dentai');
+    return res;
+  });
+
+  // ИИ-Пациент: без Pro — только бесплатные пациенты
+  app.post('/api/patient/chat', async (c) => {
+    const g = aiGuard(c);
+    if (g.error !== undefined) return g.error;
+    const body = await c.req.json().catch(() => null);
+    const patientId = typeof body?.patientId === 'string' ? body.patientId : '';
+    if (!FREE_PATIENT_IDS.has(patientId) && (await getAccess(db, g.userId)).plan !== 'pro') {
+      return c.json({ error: 'Этот пациент доступен в Pro.', code: 'PRO_ONLY' }, 403);
+    }
+    return forward(c, gw, '/api/patient/chat', 'POST');
+  });
   // Полный текст источника, на который сослался ДентИИ
   app.get('/api/dentai/source/:number{[0-9]+}', (c) => {
     if (!c.get('session')) return c.json({ error: 'Войдите в аккаунт.' }, 401);
@@ -75,6 +109,9 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
 
   // Доступ к Pro: промокоды
   registerAccess(app, db);
+
+  // Pro-контент и экзамен по лимиту
+  registerContent(app, db);
 
   return app;
 }

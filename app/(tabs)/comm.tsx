@@ -19,6 +19,10 @@ import {
   type CommQuizOption,
 } from '../../data/clinicalData';
 import { useProgress } from '../../lib/progress';
+import { useRouter } from 'expo-router';
+import { ProBadge } from '../../components/ProBadge';
+import { PRO_COMM } from '../../data/proCatalog';
+import { onLockedPress, useProContent } from '../../lib/content';
 
 type Scenario = typeof COMM_SCENARIOS[0];
 
@@ -44,6 +48,11 @@ function PatientAvatar({ type }: { type: string }) {
 
 export default function CommScreen() {
   const { record } = useProgress();
+  const pro = useProContent();
+  const router = useRouter();
+  // Pro-сценарии приходят из ядра вместе со своими вопросами квиза
+  const scenarios: Scenario[] = [...COMM_SCENARIOS, ...((pro.content?.comm ?? []) as Scenario[])];
+  const locked = pro.content ? [] : PRO_COMM;
   const headerTop = useHeaderTopPadding();
   const [active, setActive] = useState<Scenario | null>(null);
   const [stageIdx, setStageIdx] = useState(0);
@@ -59,7 +68,8 @@ export default function CommScreen() {
   const [scenarioDone, setScenarioDone] = useState(false);
 
   const loadStage = (sc: Scenario, idx: number) => {
-    const quiz = getQuizForStage(sc.id, idx);
+    const own = (sc as any).quiz as { stageIndex: number; options: Parameters<typeof shuffleOptions>[0] }[] | undefined;
+    const quiz = own ? own.find((q) => q.stageIndex === idx) : getQuizForStage(sc.id, idx);
     setOptions(quiz ? shuffleOptions(quiz.options) : []);
     setSelectedIdx(null);
     setShowBreakdown(false);
@@ -307,7 +317,7 @@ export default function CommScreen() {
 
       {tab === 'patients' && (
         <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }} showsVerticalScrollIndicator={false}>
-          {COMM_SCENARIOS.map(sc => {
+          {scenarios.map(sc => {
             const ic = PSYCHO_ICONS[sc.type] || { icon: 'person-outline', color: C.primary, bg: C.light };
             return (
               <TouchableOpacity key={sc.id} style={s.patCard}
@@ -325,6 +335,19 @@ export default function CommScreen() {
               </TouchableOpacity>
             );
           })}
+          {locked.map(sc => (
+            <TouchableOpacity key={sc.id} style={[s.patCard, { opacity: 0.75 }]}
+              onPress={() => onLockedPress(pro, () => router.push('/profile'))}
+              activeOpacity={0.75}>
+              <PatientAvatar type={sc.type} />
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={s.patName}>{sc.name}</Text>
+                <Text style={s.patType}>{sc.type}</Text>
+                <Text style={s.patGoal} numberOfLines={2}>{sc.goal}</Text>
+              </View>
+              <ProBadge />
+            </TouchableOpacity>
+          ))}
           <View style={{ height: 20 }} />
         </ScrollView>
       )}

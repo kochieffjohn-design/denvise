@@ -9,6 +9,11 @@ import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { aiPost, errorText } from '../../lib/api';
 import { PATIENTS } from '../../data/clinicalData';
 import { useProgress } from '../../lib/progress';
+import { useRouter } from 'expo-router';
+import { ProBadge } from '../../components/ProBadge';
+import { FREE_PATIENT_IDS } from '../../data/proCatalog';
+import { onLockedPress, useProContent } from '../../lib/content';
+import { authEnabled } from '../../lib/session';
 
 // isError — служебная плашка об ошибке, а не реплика пациента: модели не отправляется.
 type Msg = { role: 'user' | 'assistant'; content: string; isError?: boolean };
@@ -26,6 +31,10 @@ function fbStyle(note: string) {
 
 export default function PatientScreen() {
   const { record } = useProgress();
+  const pro = useProContent();
+  const router = useRouter();
+  // Без Pro разговор открыт только с бесплатными пациентами (ядро проверяет то же)
+  const isLocked = (id: string) => authEnabled && !pro.isPro && !FREE_PATIENT_IDS.includes(id);
   const headerTop = useHeaderTopPadding();
   const online = useOnline();
   const [pat, setPat] = useState<typeof PATIENTS[0] | null>(null);
@@ -97,7 +106,9 @@ export default function PatientScreen() {
       <View style={[s.hdr, { paddingTop: headerTop }]}><Text style={s.title}>🤖 ИИ-Пациент</Text><Text style={s.sub}>Выберите психотип</Text></View>
       <ScrollView contentContainerStyle={s.grid}>
         {PATIENTS.map(p => (
-          <TouchableOpacity key={p.id} style={s.pc} onPress={() => select(p)} activeOpacity={0.7}>
+          <TouchableOpacity key={p.id} style={[s.pc, isLocked(p.id) && { opacity: 0.75 }]}
+            onPress={() => (isLocked(p.id) ? onLockedPress(pro, () => router.push('/profile')) : select(p))} activeOpacity={0.7}>
+            {isLocked(p.id) && <View style={{ position: 'absolute', top: 10, right: 10 }}><ProBadge /></View>}
             <Text style={s.pav}>{p.avatar}</Text>
             <Text style={s.pnm}>{p.name}</Text>
             <Text style={s.ptp}>{p.type}</Text>

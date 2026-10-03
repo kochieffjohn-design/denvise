@@ -21,6 +21,8 @@ RUN npm ci --omit=dev --omit=peer && npm cache clean --force
 COPY tsconfig.json ./
 COPY src ./src
 COPY drizzle ./drizzle
+# Pro-контент (выдаётся только с Pro, см. src/content.ts)
+COPY content ./content
 
 USER node
 EXPOSE 8788
