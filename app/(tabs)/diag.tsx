@@ -45,7 +45,7 @@ export default function DiagScreen() {
   const [diagAnswered, setDiagAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [diagOptions, setDiagOptions] = useState<string[]>([]);
-  const [done, setDone] = useState<Record<string, { passed: boolean; xp: number }>>({});
+  const [done, setDone] = useState<Record<string, { passed: boolean; xp: number; correctDiag?: boolean }>>({});
   const { stats, record } = useProgress();
   const donePersisted = stats.diagDone;
 
@@ -84,7 +84,7 @@ export default function DiagScreen() {
     const passed = isCorrect && usedRequired >= Math.ceil(required.length * 0.6);
     setScore(total);
     setDiagAnswered(true);
-    setDone(d => ({ ...d, [active.id]: { passed, xp: total } }));
+    setDone(d => ({ ...d, [active.id]: { passed, xp: total, correctDiag: isCorrect } }));
     if (passed) {
       record('diag', active.id, total);
     }
@@ -116,11 +116,20 @@ export default function DiagScreen() {
         </View>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 14 }}>
           <View style={[s.resBanner, { borderColor: d?.passed ? C.success : C.danger }]}>
-            <Text style={[s.resTitle, { color: d?.passed ? C.success : C.danger }]}>
-              {d?.passed ? 'Верно!' : 'Неверно'}
+            <Text style={[s.resTitle, { color: d?.passed ? C.success : d?.correctDiag ? C.warn : C.danger }]}>
+              {d?.passed ? 'Верно!' : d?.correctDiag ? 'Почти' : 'Неверно'}
             </Text>
             <Text style={s.resDiag}>{active.diagnosis}</Text>
-            <Text style={s.resXp}>+{d?.xp} XP</Text>
+            {/* Опыт — только за пройденный кейс; не обещаем очки, которые не начислятся */}
+            {d?.passed ? (
+              <Text style={s.resXp}>+{d.xp} XP</Text>
+            ) : (
+              <Text style={s.resNoXp}>
+                {d?.correctDiag
+                  ? 'Диагноз верный, но нужных обследований меньше 60%. Опыт за кейс не начислен — пройдите его ещё раз.'
+                  : 'Опыт начисляется за верный диагноз. Пройдите кейс ещё раз.'}
+              </Text>
+            )}
           </View>
 
           <View style={s.card}>
@@ -488,6 +497,7 @@ const s = StyleSheet.create({
   resTitle: { fontSize: 22, fontWeight: '800', marginBottom: 6 },
   resDiag: { fontSize: 13, color: C.text2, textAlign: 'center', marginBottom: 8 },
   resXp: { fontSize: 36, fontWeight: '900', color: C.primary },
+  resNoXp: { fontSize: 14, color: C.text2, textAlign: 'center', lineHeight: 20 },
   btnP: { backgroundColor: C.primary, borderRadius: 10, padding: 14, alignItems: 'center' },
   btnPT: { color: C.white, fontSize: 14, fontWeight: '700' },
 });
