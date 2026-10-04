@@ -40,6 +40,28 @@ export async function grantPro(db: Db, userId: string, days: number, note: strin
   return db.transaction((tx) => extendPro(tx, userId, days, 'admin', note));
 }
 
+/** Забрать Pro: доступ заканчивается сейчас. В журнале — запись revoke. false — Pro и так не было. */
+export async function revokePro(db: Db, userId: string, note: string | null = null): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const now = new Date();
+    const [cur] = await tx.select({ proUntil: userAccess.proUntil }).from(userAccess).where(eq(userAccess.userId, userId)).for('update');
+    if (!cur || cur.proUntil <= now) return false;
+    await tx.update(userAccess).set({ proUntil: now, updatedAt: now }).where(eq(userAccess.userId, userId));
+    await tx.insert(accessGrant).values({ userId, source: 'revoke', ref: note, days: 0, proUntil: now });
+    return true;
+  });
+}
+
+/** Отключить промокод: новых активаций не будет, уже выданный Pro остаётся. */
+export async function disablePromo(db: Db, raw: string): Promise<boolean> {
+  const rows = await db
+    .update(promoCode)
+    .set({ expiresAt: new Date() })
+    .where(eq(promoCode.code, normalizeCode(raw)))
+    .returning({ code: promoCode.code });
+  return rows.length > 0;
+}
+
 // Без похожих символов (0/O, 1/I/L), чтобы код легко продиктовать и перепечатать
 const ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 

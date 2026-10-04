@@ -3,11 +3,13 @@
 //   deploy/promo.sh prod create --days 30 --uses 1 --expires 2026-12-31 --code DENVFRIEND
 //   deploy/promo.sh prod list
 //   deploy/promo.sh prod grant --email someone@example.com --days 30 --note "подарок"
+//   deploy/promo.sh prod revoke --email someone@example.com --note "причина"   — забрать Pro сейчас
+//   deploy/promo.sh prod disable --code DENV-XXXX-XXXX                       — отключить промокод
 process.env.TZ = 'UTC';
 
 import { eq } from 'drizzle-orm';
 import { parseArgs } from 'node:util';
-import { createPromo, formatCode, grantPro, listPromos } from '../access.js';
+import { createPromo, disablePromo, formatCode, grantPro, listPromos, revokePro } from '../access.js';
 import { createDb } from '../db/index.js';
 import { user } from '../db/schema.js';
 
@@ -56,8 +58,17 @@ try {
     if (!u) throw new Error(`Аккаунта ${email} нет — человек должен сначала войти в приложение`);
     const until = await grantPro(db, u.id, days, values.note ?? null);
     console.log(`Pro выдан ${email} до ${date(until)}`);
+  } else if (command === 'revoke') {
+    const email = values.email?.trim().toLowerCase();
+    if (!email) throw new Error('--email обязателен');
+    const [u] = await db.select({ id: user.id }).from(user).where(eq(user.email, email));
+    if (!u) throw new Error(`Аккаунта ${email} нет`);
+    console.log((await revokePro(db, u.id, values.note ?? null)) ? `Pro у ${email} отключён` : `У ${email} и так нет Pro`);
+  } else if (command === 'disable') {
+    if (!values.code) throw new Error('--code обязателен');
+    console.log((await disablePromo(db, values.code)) ? `Промокод ${formatCode(values.code.toUpperCase().replace(/[^0-9A-Z]/g, ''))} отключён` : 'Такого промокода нет');
   } else {
-    console.log('Команды: create --days N [--uses N] [--expires ГГГГ-ММ-ДД] [--note текст] [--code КОД] | list | grant --email адрес --days N');
+    console.log('Команды: create --days N [--uses N] [--expires ГГГГ-ММ-ДД] [--note текст] [--code КОД] | list | grant --email адрес --days N | revoke --email адрес | disable --code КОД');
     process.exitCode = 1;
   }
 } catch (e) {

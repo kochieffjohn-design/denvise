@@ -254,4 +254,6 @@ OpenRouter (deepseek/deepseek-v4-flash)
 - **Промокоды и ручная выдача** (до админки — через Claude):
   - `deploy/promo.sh prod create --days 90 --uses 10 --note "для кого"` — код вида `DENV-XXXX-XXXX`;
   - `deploy/promo.sh prod list` — все коды и сколько использовано;
-  - `deploy/promo.sh prod grant --email адрес --days 30` — Pro по почте (человек должен хотя бы раз войти).
+  - `deploy/promo.sh prod grant --email адрес --days 30` — Pro по почте (человек должен хотя бы раз войти);
+  - `deploy/promo.sh prod revoke --email адрес --note причина` — забрать Pro сейчас (в журнале — revoke);
+  - `deploy/promo.sh prod disable --code DENV-XXXX-XXXX` — отключить промокод (выданный по нему Pro остаётся).

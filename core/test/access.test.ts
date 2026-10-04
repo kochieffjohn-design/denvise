@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createPromo, formatCode, generateCode, grantPro, normalizeCode } from '../src/access.js';
+import { createPromo, disablePromo, formatCode, generateCode, grantPro, normalizeCode, revokePro } from '../src/access.js';
 import { accessGrant, promoCode, user } from '../src/db/schema.js';
 import { client, signIn, startTestCore } from './helpers.js';
 
@@ -100,5 +100,30 @@ describe('доступ и промокоды', () => {
     expect((await me(c)).plan).toBe('free');
     const log = await core.db.select().from(accessGrant).where(eq(accessGrant.userId, id));
     expect(log.map((g) => [g.source, g.ref, g.days])).toEqual([['admin', 'подарок', 3]]);
+  });
+
+  it('забрать Pro: доступ заканчивается сразу, Pro-контент больше не выдаётся, в журнале — revoke', async () => {
+    const c = await signIn(core.app, 'acc-revoke@example.com');
+    const id = await userId('acc-revoke@example.com');
+    await grantPro(core.db, id, 365);
+    expect((await me(c)).plan).toBe('pro');
+    expect(await revokePro(core.db, id, 'нарушение')).toBe(true);
+    expect((await me(c)).plan).toBe('free');
+    expect((await c.send('/api/content/pro')).status).toBe(403);
+    expect(await revokePro(core.db, id)).toBe(false); // уже нет
+    const log = await core.db.select().from(accessGrant).where(eq(accessGrant.userId, id));
+    expect(log.map((g) => g.source)).toEqual(['admin', 'revoke']);
+  });
+
+  it('отключённый промокод больше не активируется, выданный по нему Pro остаётся', async () => {
+    const code = await createPromo(core.db, { days: 30, maxUses: 10 });
+    const early = await signIn(core.app, 'acc-dis-a@example.com');
+    await redeem(early, code);
+    expect(await disablePromo(core.db, formatCode(code))).toBe(true);
+    const late = await signIn(core.app, 'acc-dis-b@example.com');
+    const res = await redeem(late, code);
+    expect(res.status).toBe(410);
+    expect((await me(early)).plan).toBe('pro');
+    expect(await disablePromo(core.db, 'DENV-NONE-NONE')).toBe(false);
   });
 });
