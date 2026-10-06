@@ -37,10 +37,16 @@ export default function AboutYouScreen() {
   // Подсказки вузов: по любому слову из ввода
   const suggestions = useMemo(() => {
     const q = university.trim().toLowerCase();
-    if (!q) return UNIVERSITIES.slice(0, 6);
-    if (UNIVERSITIES.some((u) => u.toLowerCase() === q)) return [];
+    if (!q) return UNIVERSITIES.slice(0, 6).map((u) => u.name);
+    if (UNIVERSITIES.some((u) => u.name.toLowerCase() === q)) return [];
     const words = q.split(/\s+/);
-    return UNIVERSITIES.filter((u) => words.every((w) => u.toLowerCase().includes(w))).slice(0, 6);
+    // Ищем и по названию, и по сокращениям / старым названиям (СОГМА, МГМСУ…)
+    return UNIVERSITIES.filter((u) => {
+      const hay = `${u.name} ${u.search}`.toLowerCase();
+      return words.every((w) => hay.includes(w));
+    })
+      .slice(0, 6)
+      .map((u) => u.name);
   }, [university]);
 
   const save = async () => {
