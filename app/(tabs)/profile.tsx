@@ -59,6 +59,24 @@ function Medallion({ level, size = 62, locked = false }: { level: typeof LEVELS[
   );
 }
 
+/** Строка «подпись — значение»; длинное значение — под подписью, на всю ширину. */
+function InfoRow({ label, value }: { label: string; value: string }) {
+  if (value.length > 26) {
+    return (
+      <View style={s.infoStack}>
+        <Text style={s.infoLabel}>{label}</Text>
+        <Text style={s.infoValue}>{value}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={s.infoRow}>
+      <Text style={s.infoLabel}>{label}</Text>
+      <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right', marginLeft: 12 }]}>{value}</Text>
+    </View>
+  );
+}
+
 /** «Pro до 3 января 2027» / «Бесплатный». */
 function planText(access: Access | undefined): string {
   if (access?.plan !== 'pro' || !access.proUntil) return 'Бесплатный';
@@ -249,22 +267,9 @@ export default function ProfileScreen() {
               <Text style={s.infoTitle}>Аккаунт</Text>
               {user.profile && (
                 <>
-                  <View style={s.infoRow}>
-                    <Text style={s.infoLabel}>Имя</Text>
-                    <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>{[user.profile.firstName, user.profile.lastName].filter(Boolean).join(' ')}</Text>
-                  </View>
-                  <View style={s.infoRow}>
-                    <Text style={s.infoLabel}>Кто вы</Text>
-                    <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>
-                      {ROLE_LABELS[user.profile.role]}{user.profile.course ? `, ${user.profile.course} курс` : ''}
-                    </Text>
-                  </View>
-                  {!!user.profile.university && (
-                    <View style={s.infoRow}>
-                      <Text style={s.infoLabel}>Вуз</Text>
-                      <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right', marginLeft: 12 }]}>{user.profile.university}</Text>
-                    </View>
-                  )}
+                  <InfoRow label="Имя" value={[user.profile.firstName, user.profile.lastName].filter(Boolean).join(' ')} />
+                  <InfoRow label="Кто вы" value={ROLE_LABELS[user.profile.role] + (user.profile.course ? `, ${user.profile.course} курс` : '')} />
+                  {!!user.profile.university && <InfoRow label="Вуз" value={user.profile.university} />}
                 </>
               )}
               <View style={s.infoRow}>
@@ -431,6 +436,7 @@ const s = StyleSheet.create({
   infoCard: { backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 10 },
   infoTitle: { fontSize: 14, fontWeight: '700', color: C.n900, marginBottom: 2 },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  infoStack: { gap: 3 },
   infoLabel: { fontSize: 13, color: C.n400 },
   infoValue: { fontSize: 13, fontWeight: '600', color: C.n900 },
   resetBtn: { borderRadius: 14, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
