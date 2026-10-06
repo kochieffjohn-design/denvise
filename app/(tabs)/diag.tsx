@@ -402,7 +402,7 @@ export default function DiagScreen() {
             );
           })}
           {locked.map(c => (
-            <TouchableOpacity key={c.id} style={[s.caseCard, s.caseLocked]} onPress={() => onLockedPress(pro, () => router.push('/profile'))} activeOpacity={0.7}>
+            <TouchableOpacity key={c.id} style={[s.caseCard, s.caseLocked]} onPress={() => onLockedPress(pro, () => router.push('/profile'), 'diag')} activeOpacity={0.7}>
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={s.caseName}>Пациент {c.patient}</Text>
                 <ProBadge />

@@ -172,7 +172,7 @@ export default function ConsultScreen() {
           ))}
           {locked.map(sec => (
             <TouchableOpacity key={sec.id} style={[s.sectionCard, { opacity: 0.75 }]}
-              onPress={() => onLockedPress(pro, () => router.push('/profile'))} activeOpacity={0.75}>
+              onPress={() => onLockedPress(pro, () => router.push('/profile'), 'consult')} activeOpacity={0.75}>
               <View style={[s.sectionIcon, { backgroundColor: sec.bg }]}>
                 <Ionicons name={sec.icon as any} size={24} color={sec.color} />
               </View>

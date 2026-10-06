@@ -337,7 +337,7 @@ export default function CommScreen() {
           })}
           {locked.map(sc => (
             <TouchableOpacity key={sc.id} style={[s.patCard, { opacity: 0.75 }]}
-              onPress={() => onLockedPress(pro, () => router.push('/profile'))}
+              onPress={() => onLockedPress(pro, () => router.push('/profile'), 'comm')}
               activeOpacity={0.75}>
               <PatientAvatar type={sc.type} />
               <View style={{ flex: 1, gap: 3 }}>

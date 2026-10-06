@@ -195,7 +195,7 @@ export default function ReceptionScreen() {
           {locked.map(p => {
             const ic = ICONS[p.name];
             return (
-              <TouchableOpacity key={p.name} style={[s.card, { opacity: 0.75 }]} onPress={() => onLockedPress(pro, () => router.push('/profile'))} activeOpacity={0.75}>
+              <TouchableOpacity key={p.name} style={[s.card, { opacity: 0.75 }]} onPress={() => onLockedPress(pro, () => router.push('/profile'), 'reception')} activeOpacity={0.75}>
                 <ProcIcon name={p.name} />
                 <Text style={s.cardName} numberOfLines={2}>{p.name}</Text>
                 {ic && (

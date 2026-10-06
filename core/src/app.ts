@@ -6,6 +6,7 @@ import { type Env, webOrigins } from './env.js';
 import { AI_LIMIT, forward, type GatewayConfig, UserRateLimiter } from './gateway.js';
 import { registerProgress } from './progress.js';
 import { getProfile, registerProfile } from './profile.js';
+import { recordActivity, registerAnalytics } from './analytics.js';
 import { getAccess, registerAccess } from './access.js';
 import { FREE_PATIENT_IDS, registerContent } from './content.js';
 import { DAILY_LIMITS, refundDaily, takeDaily } from './limits.js';
@@ -55,6 +56,7 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
     const s = c.get('session');
     if (!s) return c.json({ error: 'Не выполнен вход' }, 401);
     const { id, email, name, createdAt } = s.user;
+    await recordActivity(db, id); // приложение открыли сегодня
     return c.json({ user: { id, email, name, createdAt, access: await getAccess(db, id), profile: await getProfile(db, id) } });
   });
 
@@ -110,6 +112,9 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
 
   // Профиль: имя, роль, курс, вуз
   registerProfile(app, db);
+
+  // Аналитика: события воронки, источник прихода
+  registerAnalytics(app, db);
 
   // Доступ к Pro: промокоды
   registerAccess(app, db);

@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { CORE_URL } from '../../constants/config';
 import { useProContent } from '../../lib/content';
 import { authEnabled } from '../../lib/session';
+import { track } from '../../lib/analytics';
 
 // ─── УТИЛИТЫ ─────────────────────────────────────────────────────────────────
 function shuffle<T>(arr: T[]): T[] {
@@ -62,7 +63,10 @@ export default function ExamScreen() {
     try {
       const res = await fetch(`${CORE_URL}/api/exam/start`, { method: 'POST', credentials: 'include', signal: AbortSignal.timeout(8000) });
       if (res.ok) setStarted(true);
-      else setGateMsg((await res.json().catch(() => null))?.error || 'Не удалось начать экзамен. Попробуйте ещё раз.');
+      else {
+        if (res.status === 429) track('limit_hit', { kind: 'exam' });
+        setGateMsg((await res.json().catch(() => null))?.error || 'Не удалось начать экзамен. Попробуйте ещё раз.');
+      }
     } catch {
       setStarted(true); // без сети не мешаем: кейсы экзамена есть на устройстве
     } finally {

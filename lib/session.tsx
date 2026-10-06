@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { CORE_URL } from '../constants/config';
+import { isStandalone, setAnalyticsUser, track } from './analytics';
 
 // Состояние приложения на верхнем уровне: пройден ли онбординг и выполнен ли
 // вход. От него зависит, какой экран показать: онбординг → вход → приложение
@@ -101,7 +102,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     else await AsyncStorage.removeItem(USER_KEY);
   }, []);
 
+  // Аналитика знает, кто вошёл (для привязки источника прихода)
+  useEffect(() => setAnalyticsUser(user?.id ?? null), [user?.id]);
+
   useEffect(() => {
+    track('app_open', { standalone: isStandalone() });
     (async () => {
       const [ob, cached] = await Promise.all([AsyncStorage.getItem(ONBOARDED_KEY), AsyncStorage.getItem(USER_KEY)]);
       setOnboarded(!!ob);
@@ -140,14 +145,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       async completeOnboarding() {
         await AsyncStorage.setItem(ONBOARDED_KEY, '1');
         setOnboarded(true);
+        track('onboarding_done');
       },
       async requestCode(email) {
         await core('/api/auth/email-otp/send-verification-otp', { email: email.trim().toLowerCase(), type: 'sign-in' });
+        track('code_requested');
       },
       async verifyCode(email, code) {
         await core('/api/auth/sign-in/email-otp', { email: email.trim().toLowerCase(), otp: code });
         const me = await core<{ user: User }>('/api/me');
         await remember(me.user);
+        track('signed_in', { newUser: !me.user.profile });
       },
       async signOut() {
         await core('/api/auth/sign-out', {}).catch(() => {});
@@ -156,10 +164,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       async saveProfile(p) {
         const { profile } = await core<{ profile: Profile }>('/api/profile', p, 'PUT');
         if (user) await remember({ ...user, profile });
+        track('profile_saved', { role: profile.role });
       },
       async redeemPromo(code) {
         const { access } = await core<{ access: Access }>('/api/promo/redeem', { code });
         if (user) await remember({ ...user, access });
+        track('promo_redeemed');
         return access;
       },
     }),

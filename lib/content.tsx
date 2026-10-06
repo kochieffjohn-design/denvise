@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { Alert, Platform } from 'react-native';
 import { CORE_URL } from '../constants/config';
 import type { Section } from '../data/consultData';
+import { track } from './analytics';
 import { authEnabled, useSession, type Access } from './session';
 
 // Pro-контент: кейсы, которых нет в приложении. С Pro загружается из ядра
@@ -95,7 +96,8 @@ export function ProContentProvider({ children }: { children: ReactNode }) {
  * Нажали на карточку с замком. С Pro, но контент ещё не загружен — объясняем,
  * что нужен интернет; без Pro — предлагаем промокод в Профиле.
  */
-export function onLockedPress(state: ProState, openProfile: () => void) {
+export function onLockedPress(state: ProState, openProfile: () => void, section = '') {
+  track('pro_lock_tap', { section, isPro: state.isPro });
   if (state.isPro) {
     const text = state.loading ? 'Загружаем Pro-кейсы, это займёт несколько секунд.' : 'Чтобы загрузить Pro-кейсы, подключитесь к интернету.';
     if (Platform.OS === 'web') window.alert(text);

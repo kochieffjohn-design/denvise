@@ -5,3 +5,4 @@ export * from './progress-schema.js';
 export * from './access-schema.js';
 export * from './usage-schema.js';
 export * from './profile-schema.js';
+export * from './analytics-schema.js';

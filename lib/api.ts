@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { CORE_URL, DENTAI_API_URL } from '../constants/config';
+import { track } from './analytics';
 
 // Запросы к шлюзу ДентИИ / ИИ-Пациента с таймаутом и понятными причинами ошибок.
 // Без таймаута в авиарежиме на iPhone запрос не падает, а висит — и индикатор
@@ -72,6 +73,7 @@ export async function postJson<T>(
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
+    if (res.status === 429 && data?.code === 'DAILY_LIMIT') track('limit_hit', { kind: url.includes('/dentai/') ? 'dentai' : 'other' });
     throw new ApiError('server', (data && typeof data.error === 'string' && data.error) || 'Сервер вернул ошибку. Попробуйте ещё раз.');
   }
   return data as T;

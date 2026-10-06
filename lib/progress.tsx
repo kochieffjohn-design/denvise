@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState, Platform } from 'react-native';
 import { CORE_URL } from '../constants/config';
+import { track } from './analytics';
 import { authEnabled, useSession } from './session';
 
 // Прогресс: пройденные задания, опыт, серия дней подряд.
@@ -202,6 +203,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       const next: Stored = synced ? { base: cur.base, outbox: [...cur.outbox, e] } : { base: fold(cur.base, [e]), outbox: [] };
       save(next);
       if (synced) sync();
+      track('task_done', { kind, item: itemId });
       return toStats(fold(next.base, next.outbox));
     },
     [synced, save, sync]

@@ -107,7 +107,7 @@ export default function PatientScreen() {
       <ScrollView contentContainerStyle={s.grid}>
         {PATIENTS.map(p => (
           <TouchableOpacity key={p.id} style={[s.pc, isLocked(p.id) && { opacity: 0.75 }]}
-            onPress={() => (isLocked(p.id) ? onLockedPress(pro, () => router.push('/profile')) : select(p))} activeOpacity={0.7}>
+            onPress={() => (isLocked(p.id) ? onLockedPress(pro, () => router.push('/profile'), 'patient') : select(p))} activeOpacity={0.7}>
             {isLocked(p.id) && <View style={{ position: 'absolute', top: 10, right: 10 }}><ProBadge /></View>}
             <Text style={s.pav}>{p.avatar}</Text>
             <Text style={s.pnm}>{p.name}</Text>
