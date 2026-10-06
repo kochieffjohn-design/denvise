@@ -12,6 +12,13 @@ import { useScreenTransition } from '../../components/ScreenTransition';
 import { C } from '../../constants/Colors';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { STATIONS, type Station } from '../../data/clinicalData';
+import { useProgress } from '../../lib/progress';
+
+// Опыт за станцию — только за зачёт (от 70% шагов на своём месте, как на аккредитации):
+// 62–80 XP, чем точнее порядок, тем больше
+const PASS_SHARE = 0.7;
+const stationXp = (correct: number, total: number) =>
+  total && correct / total >= PASS_SHARE ? Math.round(20 + 60 * (correct / total)) : 0;
 
 // ─── КОНСТРУКТОР ────────────────────────────────────────────
 function StepBuilder({ station }: { station: Station }) {
@@ -22,6 +29,8 @@ function StepBuilder({ station }: { station: Station }) {
   const [shuffled] = useState(() => [...allSteps].sort(() => Math.random() - 0.5));
   const [selected, setSelected] = useState<string[]>([]);
   const [finished, setFinished] = useState(false);
+  const [gainedXp, setGainedXp] = useState(0);
+  const { record } = useProgress();
 
   const handleTap = (stepId: string) => {
     if (finished) return;
@@ -33,6 +42,10 @@ function StepBuilder({ station }: { station: Station }) {
     setSelected(newSelected);
     if (newSelected.length === allSteps.length) {
       setFinished(true);
+      const correct = newSelected.filter((id, idx) => getCorrectOrder(id) === idx + 1).length;
+      const xp = stationXp(correct, allSteps.length);
+      setGainedXp(xp);
+      if (xp > 0) record('station', station.id, xp);
     }
   };
 
@@ -49,6 +62,7 @@ function StepBuilder({ station }: { station: Station }) {
   const reset = () => {
     setSelected([]);
     setFinished(false);
+    setGainedXp(0);
   };
 
   return (
@@ -149,6 +163,13 @@ function StepBuilder({ station }: { station: Station }) {
              correctCount >= allSteps.length * 0.6 ? 'Хорошо, есть ошибки' :
              'Нужна практика'}
           </Text>
+          {gainedXp > 0 ? (
+            <Text style={sb.resultXp}>+{gainedXp} XP</Text>
+          ) : (
+            <Text style={sb.resultNoXp}>
+              Опыт — за зачёт: от {Math.ceil(allSteps.length * PASS_SHARE)} из {allSteps.length} шагов на своём месте
+            </Text>
+          )}
           <TouchableOpacity style={sb.btn} onPress={reset}>
             <LinearGradient
               colors={['#16A06B', '#3FC793']}
@@ -485,6 +506,8 @@ const sb = StyleSheet.create({
   },
   resultScore: { fontSize: 52, fontWeight: '900', color: C.n900 },
   resultLabel: { fontSize: 14, color: C.n700, textAlign: 'center' },
+  resultXp: { fontSize: 28, fontWeight: '900', color: C.primary, textAlign: 'center' },
+  resultNoXp: { fontSize: 13, color: C.n500, textAlign: 'center', lineHeight: 18 },
   btn: { borderRadius: 14, width: '100%', marginTop: 4, overflow: 'hidden' },
   btnGradient: { paddingVertical: 14, alignItems: 'center' },
   btnT: { color: '#fff', fontSize: 14, fontWeight: '700' },

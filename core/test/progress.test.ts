@@ -36,7 +36,7 @@ describe('прогресс', () => {
     const c = await signIn(core.app, 'p-empty@example.com');
     expect(await (await c.send('/api/progress')).json()).toEqual({
       xp: 0,
-      counts: { diag: 0, comm: 0, exam: 0, patient: 0 },
+      counts: { diag: 0, comm: 0, exam: 0, patient: 0, station: 0 },
       diagDone: [],
       activeDates: [],
     });
@@ -51,11 +51,12 @@ describe('прогресс', () => {
       ev({ kind: 'comm', itemId: 'sc-1', xp: 70 }),
       ev({ kind: 'exam', itemId: 'ex-1', xp: 120 }),
       ev({ kind: 'patient', itemId: 'p1', xp: 40, localDate: '2026-09-30', at: Date.UTC(2026, 8, 30, 12) }),
+      ev({ kind: 'station', itemId: 's1', xp: 80 }),
     ]);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
-      xp: 370,
-      counts: { diag: 3, comm: 1, exam: 1, patient: 1 },
+      xp: 450,
+      counts: { diag: 3, comm: 1, exam: 1, patient: 1, station: 1 },
       diagDone: ['case-1', 'case-2'],
       activeDates: [today, '2026-09-30'],
     });
@@ -82,8 +83,10 @@ describe('прогресс', () => {
 
   it('мусор отклоняется, неправдоподобные даты отбрасываются', async () => {
     const c = await signIn(core.app, 'p-bad@example.com');
-    expect((await post(c, [ev({ kind: 'hack' })])).status).toBe(400);
-    expect((await post(c, [ev({ xp: 100000 })])).status).toBe(400);
+    // Непонятные записи отбрасываются по одной, не ломая всю пачку
+    const mixed = await post(c, [ev({ kind: 'hack' }), ev({ xp: 100000 }), ev({ xp: 7 })]);
+    expect(mixed.status).toBe(200);
+    expect((await mixed.json()).xp).toBe(7);
     expect((await post(c, [])).status).toBe(400);
     expect((await post(c, Array.from({ length: 101 }, () => ev()))).status).toBe(400);
     const res = await post(c, [
@@ -92,7 +95,7 @@ describe('прогресс', () => {
       ev({ xp: 5 }),
     ]);
     expect(res.status).toBe(200);
-    expect((await res.json()).xp).toBe(5);
+    expect((await res.json()).xp).toBe(12);
   });
 
   it('«Сбросить прогресс» очищает только свой', async () => {

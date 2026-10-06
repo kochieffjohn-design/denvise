@@ -12,7 +12,7 @@ export const progressEvent = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }), // удалили аккаунт — удалился и прогресс
     // id придумывает приложение: запись, отправленная повторно (обрыв связи), не задвоится
     id: text('id').notNull(),
-    kind: text('kind').notNull(), // diag | comm | exam | patient
+    kind: text('kind').notNull(), // diag | comm | exam | patient | station
     itemId: text('item_id'), // какой кейс / сценарий / пациент
     xp: integer('xp').notNull(),
     // День по часам пользователя — для серии «дней подряд»

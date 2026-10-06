@@ -13,7 +13,7 @@ import { authEnabled, useSession } from './session';
 // становится основой. У каждого аккаунта на устройстве своя запись.
 // Без ядра (локальная разработка) прогресс хранится только на устройстве.
 
-export type ProgressKind = 'diag' | 'comm' | 'exam' | 'patient';
+export type ProgressKind = 'diag' | 'comm' | 'exam' | 'patient' | 'station';
 
 type ProgressEvent = { id: string; kind: ProgressKind; itemId: string | null; xp: number; localDate: string; at: number };
 
@@ -35,7 +35,7 @@ export type Stats = {
   diagDone: string[];
 };
 
-const EMPTY: Summary = { xp: 0, counts: { diag: 0, comm: 0, exam: 0, patient: 0 }, diagDone: [], activeDates: [] };
+const EMPTY: Summary = { xp: 0, counts: { diag: 0, comm: 0, exam: 0, patient: 0, station: 0 }, diagDone: [], activeDates: [] };
 const storageKey = (userId: string | null) => `denvise_progress:${userId ?? 'local'}`;
 // Прогресс до появления аккаунтов (только на устройстве) — больше не нужен
 const LEGACY_KEYS = ['denvise_stats_v2', 'denvise_diag_done'];
@@ -52,7 +52,7 @@ function fold(base: Summary, events: ProgressEvent[]): Summary {
   let xp = base.xp;
   for (const e of events) {
     xp += e.xp;
-    counts[e.kind] += 1;
+    counts[e.kind] = (counts[e.kind] ?? 0) + 1; // в старом кеше может не быть нового вида
     if (e.kind === 'diag' && e.itemId) diag.add(e.itemId);
     dates.add(e.localDate);
   }

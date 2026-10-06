@@ -7,7 +7,7 @@ import { progressEvent } from './db/schema.js';
 // Прогресс пользователя: приложение присылает завершённые задания (в том числе
 // накопленные без сети), ядро возвращает итог — его приложение и показывает.
 
-const KINDS = ['diag', 'comm', 'exam', 'patient'] as const;
+const KINDS = ['diag', 'comm', 'exam', 'patient', 'station'] as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Дней активности в ответе: серии длиннее года пока не бывает
 const ACTIVE_DATES_LIMIT = 400;
@@ -21,7 +21,10 @@ const Event = z.object({
   localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   at: z.number().int(),
 });
-const Body = z.object({ events: z.array(Event).min(1).max(100) });
+// Записи разбираем по одной: непонятная (например, новый вид задания из более
+// свежей версии приложения) отбрасывается, остальные сохраняются — иначе
+// очередь на устройстве застряла бы навсегда
+const Body = z.object({ events: z.array(z.unknown()).min(1).max(100) });
 
 export type ProgressSummary = {
   xp: number;
@@ -58,7 +61,7 @@ export async function progressSummary(db: Db, userId: string): Promise<ProgressS
       .limit(ACTIVE_DATES_LIMIT),
   ]);
 
-  const counts = { diag: 0, comm: 0, exam: 0, patient: 0 };
+  const counts = { diag: 0, comm: 0, exam: 0, patient: 0, station: 0 };
   let xp = 0;
   for (const r of byKind) {
     if (r.kind in counts) counts[r.kind as keyof typeof counts] = r.n;
@@ -87,6 +90,8 @@ export function registerProgress(app: Hono<any>, db: Db) {
     // застревать, повторяя их отправку
     const now = Date.now();
     const rows = parsed.data.events
+      .map((e) => Event.safeParse(e))
+      .flatMap((r) => (r.success ? [r.data] : []))
       .filter((e) => plausible(e, now))
       .map((e) => ({ userId: id, id: e.id, kind: e.kind, itemId: e.itemId ?? null, xp: e.xp, localDate: e.localDate, occurredAt: new Date(e.at) }));
     // Повторно присланная запись (тот же id) игнорируется
