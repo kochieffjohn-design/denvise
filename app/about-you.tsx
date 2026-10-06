@@ -115,7 +115,7 @@ export default function AboutYouScreen() {
               onChangeText={setUniversity}
               onFocus={() => setUniFocused(true)}
               onBlur={() => setTimeout(() => setUniFocused(false), 150)}
-              placeholder="Начните вводить: МГМСУ, Казань…"
+              placeholder="Начните вводить: РУМ, Казань…"
               placeholderTextColor="rgba(255,255,255,0.35)"
               maxLength={120}
             />
