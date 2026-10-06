@@ -7,6 +7,8 @@ import { useOfflineStatus } from '../../hooks/useOfflineStatus';
 import { authEnabled, useSession, type Access } from '../../lib/session';
 import { useHeaderTopPadding } from '../../hooks/useSafeLayout';
 import { useProgress } from '../../lib/progress';
+import { useRouter } from 'expo-router';
+import { ROLE_LABELS } from '../../data/universities';
 
 const LEVELS = [
   { level: 1, title: 'Интерн',           minXp: 0,    maxXp: 199,  roman: 'I',    c1: '#94A3B8', c2: '#CBD5E1' },
@@ -143,6 +145,7 @@ export default function ProfileScreen() {
   const { user, signOut } = useSession();
   const [tab, setTab] = useState<'profile' | 'levels'>('profile');
   const { stats, reset } = useProgress();
+  const router = useRouter();
 
   const xp = stats.xp;
   const currentLevel = getCurrentLevel(xp);
@@ -244,6 +247,26 @@ export default function ProfileScreen() {
           {authEnabled && user && (
             <View style={s.infoCard}>
               <Text style={s.infoTitle}>Аккаунт</Text>
+              {user.profile && (
+                <>
+                  <View style={s.infoRow}>
+                    <Text style={s.infoLabel}>Имя</Text>
+                    <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>{[user.profile.firstName, user.profile.lastName].filter(Boolean).join(' ')}</Text>
+                  </View>
+                  <View style={s.infoRow}>
+                    <Text style={s.infoLabel}>Кто вы</Text>
+                    <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>
+                      {ROLE_LABELS[user.profile.role]}{user.profile.course ? `, ${user.profile.course} курс` : ''}
+                    </Text>
+                  </View>
+                  {!!user.profile.university && (
+                    <View style={s.infoRow}>
+                      <Text style={s.infoLabel}>Вуз</Text>
+                      <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right', marginLeft: 12 }]}>{user.profile.university}</Text>
+                    </View>
+                  )}
+                </>
+              )}
               <View style={s.infoRow}>
                 <Text style={s.infoLabel}>Почта</Text>
                 <Text style={[s.infoValue, { flexShrink: 1, textAlign: 'right' }]}>{user.email}</Text>
@@ -253,6 +276,9 @@ export default function ProfileScreen() {
                 <Text style={[s.infoValue, user.access?.plan === 'pro' && { color: C.primary }]}>{planText(user.access)}</Text>
               </View>
               <PromoForm />
+              <TouchableOpacity style={s.signOutBtn} onPress={() => router.push('/about-you')}>
+                <Text style={s.signOutBtnT}>Изменить данные о себе</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={s.signOutBtn} onPress={signOut}>
                 <Text style={s.signOutBtnT}>Выйти</Text>
               </TouchableOpacity>

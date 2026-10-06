@@ -9,7 +9,16 @@ import { CORE_URL } from '../constants/config';
 /** Тариф: бесплатный или Pro до указанного момента (ISO). */
 export type Access = { plan: 'free' | 'pro'; proUntil: string | null };
 
-export type User = { id: string; email: string; name: string; access?: Access };
+/** Кто пользователь (экран «Расскажите о себе»). */
+export type Profile = {
+  firstName: string;
+  lastName: string | null;
+  role: 'student' | 'graduate' | 'resident' | 'doctor' | 'assistant' | 'other';
+  course: number | null;
+  university: string | null;
+};
+
+export type User = { id: string; email: string; name: string; access?: Access; profile?: Profile | null };
 
 const ONBOARDED_KEY = 'denvise_onboarded';
 // Последний известный пользователь — чтобы без сети приложение открывалось
@@ -30,6 +39,8 @@ type Session = {
   signOut: () => Promise<void>;
   /** Активировать промокод — даёт Pro на срок кода. */
   redeemPromo: (code: string) => Promise<Access>;
+  /** Сохранить профиль (имя, роль, курс, вуз). */
+  saveProfile: (p: Profile) => Promise<void>;
 };
 
 const SessionContext = createContext<Session | null>(null);
@@ -56,11 +67,11 @@ const MESSAGES: Record<string, string> = {
   NETWORK: 'Нет связи с сервером. Проверьте интернет и попробуйте снова.',
 };
 
-async function core<T>(path: string, body?: unknown): Promise<T> {
+async function core<T>(path: string, body?: unknown, method?: 'PUT'): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${CORE_URL}${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
+      method: method ?? (body === undefined ? 'GET' : 'POST'),
       credentials: 'include',
       headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -141,6 +152,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       async signOut() {
         await core('/api/auth/sign-out', {}).catch(() => {});
         await remember(null);
+      },
+      async saveProfile(p) {
+        const { profile } = await core<{ profile: Profile }>('/api/profile', p, 'PUT');
+        if (user) await remember({ ...user, profile });
       },
       async redeemPromo(code) {
         const { access } = await core<{ access: Access }>('/api/promo/redeem', { code });

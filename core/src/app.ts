@@ -5,6 +5,7 @@ import type { Db } from './db/index.js';
 import { type Env, webOrigins } from './env.js';
 import { AI_LIMIT, forward, type GatewayConfig, UserRateLimiter } from './gateway.js';
 import { registerProgress } from './progress.js';
+import { getProfile, registerProfile } from './profile.js';
 import { getAccess, registerAccess } from './access.js';
 import { FREE_PATIENT_IDS, registerContent } from './content.js';
 import { DAILY_LIMITS, refundDaily, takeDaily } from './limits.js';
@@ -24,7 +25,7 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
     cors({
       origin: webOrigins(env),
       credentials: true,
-      allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowHeaders: ['Content-Type'],
       maxAge: 600,
     })
@@ -54,7 +55,7 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
     const s = c.get('session');
     if (!s) return c.json({ error: 'Не выполнен вход' }, 401);
     const { id, email, name, createdAt } = s.user;
-    return c.json({ user: { id, email, name, createdAt, access: await getAccess(db, id) } });
+    return c.json({ user: { id, email, name, createdAt, access: await getAccess(db, id), profile: await getProfile(db, id) } });
   });
 
   // ДентИИ и ИИ-Пациент — только после входа, через шлюз (см. gateway.ts)
@@ -106,6 +107,9 @@ export function createApp({ env, auth, db, gatewayFetch }: { env: Env; auth: Aut
 
   // Прогресс: пройденные задания, опыт, серия дней
   registerProgress(app, db);
+
+  // Профиль: имя, роль, курс, вуз
+  registerProfile(app, db);
 
   // Доступ к Pro: промокоды
   registerAccess(app, db);

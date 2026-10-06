@@ -22,7 +22,7 @@ export default function RootLayout() {
   );
 }
 
-// Порядок первого входа: онбординг → вход → приложение. Каждая группа
+// Порядок первого входа: онбординг → вход → «о себе» → приложение. Каждая группа
 // экранов доступна только в своём состоянии; при смене состояния Expo Router
 // сам переводит на доступный экран.
 function RootStack() {
@@ -31,6 +31,8 @@ function RootStack() {
   if (loading) return <View style={{ flex: 1, backgroundColor: C.dark }} />;
 
   const signedIn = !authEnabled || !!user;
+  // Без профиля (имя, роль…) дальше «о себе» не пускаем; без ядра профиля нет вовсе
+  const hasProfile = !authEnabled || !!user?.profile;
   return (
     <Stack
       screenOptions={{
@@ -45,8 +47,11 @@ function RootStack() {
       <Stack.Protected guard={onboarded && !signedIn}>
         <Stack.Screen name="login" />
       </Stack.Protected>
-      <Stack.Protected guard={onboarded && signedIn}>
+      <Stack.Protected guard={onboarded && signedIn && hasProfile}>
         <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      <Stack.Protected guard={onboarded && signedIn && authEnabled}>
+        <Stack.Screen name="about-you" />
       </Stack.Protected>
     </Stack>
   );
