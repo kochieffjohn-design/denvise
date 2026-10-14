@@ -6,7 +6,7 @@ import rateLimit from 'express-rate-limit';
 import { PATIENTS } from '../data/patients';
 import { checkCitations } from './citations';
 import { getChunkByNumber, getKnowledgeBaseStats } from './knowledgeBase';
-import { askDentAI, askWithSystemPrompt, type ChatMessage } from './llm';
+import { askDentAI, askWithSystemPrompt, streamDentAI, type AskResult, type ChatMessage } from './llm';
 import { monitorEnabled, notify, reportLlm, startMonitor } from './monitor';
 
 const app = express();
@@ -118,40 +118,91 @@ app.post('/api/dentai/ask', limiter, async (req, res) => {
 
     const result = await askDentAI(history);
     reportLlm(true);
-    const checked = checkCitations(result.answer);
-
-    if (checked.invalidNumbers.length > 0) {
-      // Модель сослалась на номер, которого нет в базе — по определению
-      // придуманная ссылка. Не показываем её врачу молча, а логируем для
-      // разбора: часто повторяющиеся случаи — сигнал, что промпт или модель
-      // требуют доработки.
-      console.warn('[dentai/ask] модель сослалась на несуществующие номера источников:', {
-        invalidNumbers: checked.invalidNumbers,
-        question: lastMessage.content.slice(0, 200),
-      });
-    }
-    if (checked.missingSourcesLine) {
-      console.warn('[dentai/ask] ответ модели не содержит строки "Источники:" — нарушение формата system-промпта', {
-        question: lastMessage.content.slice(0, 200),
-      });
-    }
-
-    res.json({
-      answer: checked.body,
-      sources: checked.sources,
-      // Хоть одна ссылка не подтвердилась или строка источников отсутствует —
-      // сигнал "не доверяй этому ответу вслепую", который стоит показать врачу,
-      // а не только записать в лог.
-      flagged: checked.invalidNumbers.length > 0 || checked.missingSourcesLine,
-      model: result.model,
-      usage: result.usage,
-    });
+    res.json(finishAnswer(result, lastMessage.content));
   } catch (err) {
     console.error('[dentai/ask] error:', err);
     reportLlm(false);
     res.status(502).json({ error: 'Не удалось получить ответ от ИИ-агента. Попробуйте ещё раз через минуту.' });
   }
 });
+
+// ДентИИ с ответом по частям: ответ — NDJSON, по строке на кусок текста
+// {"delta":"…"}, последняя строка — {"done":true, answer, sources, flagged, …}
+// (как у /api/dentai/ask) или {"error":"…"}, если модель оборвалась на середине.
+app.post('/api/dentai/ask-stream', limiter, async (req, res) => {
+  const history = parseHistory(req.body?.messages);
+  if ('error' in history) {
+    return res.status(400).json({ error: history.error });
+  }
+  const lastMessage = history[history.length - 1]!;
+  // Пользователь закрыл экран — не тратим модель впустую
+  const abort = new AbortController();
+  res.on('close', () => abort.abort());
+  const line = (obj: object) => res.write(JSON.stringify(obj) + '\n');
+  try {
+    const result = await streamDentAI(
+      history,
+      (delta) => {
+        if (!res.headersSent) {
+          res.status(200);
+          res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-cache, no-transform');
+          res.setHeader('X-Accel-Buffering', 'no');
+        }
+        line({ delta });
+      },
+      abort.signal
+    );
+    reportLlm(true);
+    const payload = { done: true, ...finishAnswer(result, lastMessage.content) };
+    if (res.headersSent) line(payload);
+    else res.json(payload); // модель не напечатала ни слова
+    res.end();
+  } catch (err) {
+    if (abort.signal.aborted) return;
+    console.error('[dentai/ask-stream] error:', err);
+    reportLlm(false);
+    const error = 'Не удалось получить ответ от ИИ-агента. Попробуйте ещё раз через минуту.';
+    if (res.headersSent) {
+      line({ error });
+      res.end();
+    } else {
+      res.status(502).json({ error });
+    }
+  }
+});
+
+/** Проверка ссылок в ответе модели и то, что получает приложение. */
+function finishAnswer(result: AskResult, question: string) {
+  const checked = checkCitations(result.answer);
+
+  if (checked.invalidNumbers.length > 0) {
+    // Модель сослалась на номер, которого нет в базе — по определению
+    // придуманная ссылка. Не показываем её врачу молча, а логируем для
+    // разбора: часто повторяющиеся случаи — сигнал, что промпт или модель
+    // требуют доработки.
+    console.warn('[dentai/ask] модель сослалась на несуществующие номера источников:', {
+      invalidNumbers: checked.invalidNumbers,
+      question: question.slice(0, 200),
+    });
+  }
+  if (checked.missingSourcesLine) {
+    console.warn('[dentai/ask] ответ модели не содержит строки "Источники:" — нарушение формата system-промпта', {
+      question: question.slice(0, 200),
+    });
+  }
+
+  return {
+    answer: checked.body,
+    sources: checked.sources,
+    // Хоть одна ссылка не подтвердилась или строка источников отсутствует —
+    // сигнал "не доверяй этому ответу вслепую", который стоит показать врачу,
+    // а не только записать в лог.
+    flagged: checked.invalidNumbers.length > 0 || checked.missingSourcesLine,
+    model: result.model,
+    usage: result.usage,
+  };
+}
 
 // ИИ-Пациент: та же схема, что ДентИИ (свой бэкенд + OpenRouter вместо ключа,
 // зашитого в мобильный клиент), но со своим system-промптом на каждую персону
@@ -182,7 +233,7 @@ app.post('/api/patient/chat', limiter, async (req, res) => {
     const result = await askWithSystemPrompt(
       `${PATIENT_ROLE_GUARD}\n\n${patient.systemPrompt}`,
       history,
-      { maxTokens: 900, temperature: 0.6 }
+      { endpoint: 'patient', maxTokens: 900, temperature: 0.6 }
     );
     reportLlm(true);
     res.json({ answer: result.answer, model: result.model, usage: result.usage });
